@@ -13,11 +13,4 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
-  <ItemGroup>
-    <None Remove="Memory\IUnmanaged.cs~RF1d9720.TMP" />
-    <None Remove="Memory\MemoryManagement\IMemoryManagerImpl.cs~RF3c2bc2.TMP" />
-    <None Remove="Memory\MemoryManagement\MemoryManager.cs~RF34a812.TMP" />
-    <None Remove="Memory\MemoryManagement\MemoryManagerImpl.cs~RF37d623.TMP" />
-  </ItemGroup>
-
 </Project>
