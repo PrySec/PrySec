@@ -3,7 +3,7 @@ using System;
 
 namespace PrySec.Base.Memory
 {
-    public unsafe readonly ref struct UnmanagedSpan<T> where T : unmanaged
+    public unsafe readonly ref struct UnmanagedRefSpan<T> where T : unmanaged
     {
         public readonly IntPtr Handle;
 
@@ -17,7 +17,7 @@ namespace PrySec.Base.Memory
 
         public readonly T* BasePointer;
 
-        public UnmanagedSpan(int size)
+        public UnmanagedRefSpan(int size)
         {
             Length = size;
             ByteSize = size * sizeof(T);

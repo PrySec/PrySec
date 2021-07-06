@@ -2,7 +2,6 @@
 
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
-    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -14,10 +13,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Memory\IMemoryAccess.cs~RF1842dea.TMP" />
-    <None Remove="Memory\IMemoryAccess.cs~RF188af68.TMP" />
-    <None Remove="Memory\MemoryAccess.cs~RF18a7324.TMP" />
-    <None Remove="Memory\UnmangedSpan.cs~RF1a95845.TMP" />
+    <ProjectReference Include="..\PrySec.Base\PrySec.Base.csproj" />
   </ItemGroup>
 
 </Project>

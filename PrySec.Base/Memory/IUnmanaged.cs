@@ -11,5 +11,7 @@ namespace PrySec.Base.Memory
         IntPtr Handle { get; }
 
         int Size { get; }
+
+        IMemoryAccess<T> GetAccess();
     }
 }

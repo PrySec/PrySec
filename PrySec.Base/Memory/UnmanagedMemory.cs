@@ -1,4 +1,5 @@
-﻿using System;
+﻿using PrySec.Base.Memory.MemoryManagement;
+using System;
 using System.Runtime.InteropServices;
 
 namespace PrySec.Base.Memory
@@ -16,8 +17,8 @@ namespace PrySec.Base.Memory
         public UnmanagedMemory(int size)
         {
             ByteSize = size * sizeof(T);
-            Handle = Marshal.AllocHGlobal(ByteSize);
-            BasePointer = (T*)Handle;
+            BasePointer = MemoryManager.Calloc<T>(size);
+            Handle = new IntPtr(BasePointer);
             Size = size;
         }
 
@@ -25,12 +26,16 @@ namespace PrySec.Base.Memory
         {
             if (Handle != IntPtr.Zero)
             {
-                Marshal.FreeHGlobal(Handle);
+                MemoryManager.Free(BasePointer);
                 Handle = IntPtr.Zero;
                 GC.SuppressFinalize(this);
             }
         }
 
         public void Free() => Dispose();
+
+        public MemoryAccess<T> GetAccess() => new(BasePointer, Size);
+
+        IMemoryAccess<T> IUnmanaged<T>.GetAccess() => GetAccess();
     }
 }
