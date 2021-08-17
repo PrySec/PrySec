@@ -12,6 +12,8 @@
 
         public readonly int Size { get; }
 
+        public Size_T ByteSize => Size;
+
         public readonly void Dispose()
         {
         }

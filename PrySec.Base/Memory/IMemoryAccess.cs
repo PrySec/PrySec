@@ -7,5 +7,7 @@ namespace PrySec.Base.Memory
         public T* Pointer { get; }
 
         public int Size { get; }
+
+        public Size_T ByteSize { get; }
     }
 }

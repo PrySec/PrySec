@@ -16,4 +16,8 @@
     <ProjectReference Include="..\PrySec.Base\PrySec.Base.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="MemoryProtection\Native\" />
+  </ItemGroup>
+
 </Project>

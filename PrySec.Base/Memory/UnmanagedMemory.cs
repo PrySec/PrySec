@@ -6,7 +6,7 @@ namespace PrySec.Base.Memory
 {
     public unsafe class UnmanagedMemory<T> : IUnmanaged<T> where T : unmanaged
     {
-        public IntPtr Handle { get; private set; }
+        public IntPtr Handle { get; protected set; }
 
         public int Size { get; }
 
@@ -22,7 +22,7 @@ namespace PrySec.Base.Memory
             Size = size;
         }
 
-        public void Dispose()
+        public virtual void Dispose()
         {
             if (Handle != IntPtr.Zero)
             {
@@ -34,8 +34,10 @@ namespace PrySec.Base.Memory
 
         public void Free() => Dispose();
 
-        public MemoryAccess<T> GetAccess() => new(BasePointer, Size);
+        public virtual MemoryAccess<T> GetAccess() => new(BasePointer, Size);
 
         IMemoryAccess<T> IUnmanaged<T>.GetAccess() => GetAccess();
+
+        public virtual Span<T> AsSpan() => new(BasePointer, Size);
     }
 }
