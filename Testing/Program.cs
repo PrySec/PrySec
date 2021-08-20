@@ -11,6 +11,9 @@ using System.Runtime.Intrinsics.X86;
 using System.Security.Cryptography;
 using System.Text;
 
+const int WARMUP = 100_000;
+const int ITERATIONS = 25_000_000;
+
 unsafe
 {
     const string str = "abc";
@@ -22,42 +25,60 @@ unsafe
         using UnmangedSpan<byte> buffer = new(rawUtf8Length);
         byte* utf8Bytes = (byte*)buffer.BasePointer;
         Encoding.UTF8.GetBytes(pStr, strLength, utf8Bytes, rawUtf8Length);
-        Sha256Scp sha = new();
 #else
         SHA256Managed sha = new();
         byte[] buffer = Encoding.UTF8.GetBytes(str);
 #endif
-        Stopwatch stopwatch = new Stopwatch();
-        for (int i = 0; i < 10000; i++)
+        Console.WriteLine("Warmup...");
+        for (int i = 0; i < WARMUP; i++)
         {
 #if custom
-            using DeterministicSpan<byte> result = sha.Digest(buffer);
+            using DeterministicSpan<byte> result = Sha256Scp.Digest(buffer);
 #else
             sha.ComputeHash(buffer);
 #endif
         }
+        Stopwatch stopwatch = new Stopwatch();
+        Console.WriteLine("Measuring...");
         stopwatch.Start();
-        for (int i = 0; i < 10_000_000; i++)
+        for (int i = 0; i < ITERATIONS; i++)
         {
 #if custom
-            using DeterministicSpan<byte> result = sha.Digest(buffer);
+            using DeterministicSpan<byte> result = Sha256Scp.Digest(buffer);
 #else
             sha.ComputeHash(buffer);
 #endif
         }
         stopwatch.Stop();
         Console.WriteLine(stopwatch.Elapsed);
-        Console.WriteLine($"That's {stopwatch.ElapsedMilliseconds / 1_000_000d} ms / hash");
-        Console.WriteLine($"Or {1_000_000d / stopwatch.ElapsedMilliseconds * 1000} hashes / s");
+        Console.WriteLine($"That's {stopwatch.ElapsedMilliseconds / (double)ITERATIONS} ms / hash");
+        Console.WriteLine($"Or {(double)ITERATIONS / stopwatch.ElapsedMilliseconds * 1000} hashes / s");
     }
 }
 
 /*
 Timing:
 
-00:00:08.4209627
-That's 0.00842 ms / hash
-Or 118764.84560570071 hashes / s
+00:00:18.6424317
+That's 0.00074568 ms / hash
+Or 1341057.826413475 hashes / s
+
+------------------------------------------------
+
+BUILT-IN Timing:
+
+00:00:23.6836672
+That's 0.00094732 ms / hash
+Or 1055609.5089304566 hashes / s
+
+------------------------------------------------
+
+pmdbs2XNative Timing:
+
+00:00:35.2724371
+That's 0.00141088 ms / hash
+Or 708777.500567022 hashes / s
+
  */
 
 
