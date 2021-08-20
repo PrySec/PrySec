@@ -28,6 +28,14 @@ namespace PrySec.Security.MemoryProtection.Universal
             Size = size;
         }
 
+        private DeterministicSpan(IntPtr handle, int byteSize, T* basePointer)
+        {
+            Handle = handle;
+            ByteSize = byteSize;
+            BasePointer = basePointer;
+            Size = byteSize / sizeof(T);
+        }
+
         public readonly void Dispose()
         {
             if (Handle != IntPtr.Zero)
@@ -47,5 +55,8 @@ namespace PrySec.Security.MemoryProtection.Universal
         readonly IMemoryAccess<T> IUnmanaged<T>.GetAccess() => GetAccess();
 
         public readonly void ZeroMemory() => new Span<byte>(BasePointer, ByteSize).Fill(0x0);
+
+        public DeterministicSpan<TNew> CastAs<TNew>() where TNew : unmanaged =>
+            new(Handle, ByteSize, (TNew*)BasePointer);
     }
 }

@@ -1,10 +1,15 @@
 ﻿using PrySec.Base.Memory;
+using PrySec.Base.Primitives;
+using PrySec.Base.Primitives.Converters;
 using PrySec.Security.MemoryProtection.Universal;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -25,132 +30,283 @@ namespace PrySec.Security.Cryptography.Hashs
         private static readonly uint[] H = new uint[] {
             0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19 };
 
-        private const int digestLength = 0x20;
-        private const int msgSchedBufSize = 64 * sizeof(int);
+        private const int DIGEST_LENGTH = 32;
 
-        private DeterministicSpan<byte> Digest<T>(IUnmanaged<T> memory) where T : unmanaged
+        /// <summary>
+        /// The length of the message schedule array in 32-bit words.
+        /// </summary>
+        private const int MESSAGE_SCHEDULE_BUFFER_LENGTH = 64;
+
+        internal static unsafe void PrintMemory(byte* start, int length)
+        {
+            for (int i = 0; i < length; i++)
+            {
+                Console.Write(string.Format("{0:x}", start[i]));
+                Console.Write(' ');
+            }
+            Console.WriteLine();
+        }
+
+        public DeterministicSpan<byte> Digest<T>(IUnmanaged<T> memory) where T : unmanaged
         {
             int dataLength = memory.ByteSize;
             // convert string msg into 512-bit blocks (array of 16 32-bit integers) [§5.2.1]
             // length (in 32-bit integers) of content length + 0x80 byte padding + appended length
             int int32Length = (dataLength >> 2) + 3;
             // number of 16-integer (512-bit) blocks required to hold the data
-            // is equivilant to ceil(dataLength / 16d)
+            // is equivilant to ceil(int32Length / 16d)
             int blockCount = (int32Length >> 4) + (((-(int32Length & 0xF)) >> 31) & 0x1);
             // blockCount * 16;
             int allocatedSize = blockCount << 4;
-            using (DeterministicSpan<uint> messageBuffer = new(allocatedSize))
+            using DeterministicSpan<uint> buffer = new(allocatedSize);
+            buffer.ZeroMemory();
+            using (IMemoryAccess<T> memoryAccess = memory.GetAccess())
             {
-                messageBuffer.ZeroMemory();
-                using IMemoryAccess<T> memoryAccess = memory.GetAccess();
-                Unsafe.CopyBlock(messageBuffer.BasePointer, memoryAccess.Pointer, memoryAccess.ByteSize);
-            }
-        }
-
-        private IntPtr Digest(ProtectedMemory protectedMemory)
-        {
-            // convert string msg into 512-bit blocks (array of 16 32-bit integers) [§5.2.1]
-            int contentLength = protectedMemory.ContentLength;
-            double length = (contentLength / 4) + 3;                        // length (in 32-bit integers) of content length + ‘1’ + appended length
-            int blockCount = (int)Math.Ceiling(length / 16d);            // number of 16-integer (512-bit) blocks required to hold 'l' ints
-            int allocatedSize = blockCount * 16 * sizeof(int);
-            IntPtr messageBuffer = Marshal.AllocHGlobal(allocatedSize);
-            MarshalExtensions.ZeroMemory(messageBuffer, allocatedSize);
-            using (ProtectedMemoryAccess access = new ProtectedMemoryAccess(protectedMemory))
-            {
-                MarshalExtensions.Copy(access.Handle, 0, messageBuffer, 0, contentLength);
+                Unsafe.CopyBlockUnaligned(buffer.BasePointer, memoryAccess.Pointer, memoryAccess.ByteSize);
             }
             // append padding
-            Marshal.WriteByte(messageBuffer + contentLength, 0x80);
-            IntPtr buffer = Marshal.AllocHGlobal(allocatedSize);
-            MarshalExtensions.ZeroMemory(buffer, allocatedSize);
-            for (int i = 0; i < blockCount; i++)
+            ((byte*)buffer.BasePointer)[dataLength] = 0x80;
+            // calculate length of original message in bits
+            UInt64BE bitLength = (UInt64BE)(((ulong)dataLength) << 3);
+            // write message length as 64 bit big endian unsigned integer to the end of the buffer
+            *(ulong*)(buffer.BasePointer + buffer.Size - 2) = bitLength;
+            // convert 32 bit word wise back to little endian.
+            for (int i = 0; i < allocatedSize; i++)
             {
-                IntPtr rowPointer = messageBuffer + (i * 64);
-                // encode 4 chars per integer (64 per block), big-endian encoding
-                for (int j = 0; j < 16; j++)
-                {
-                    int value = MarshalExtensions.ReadInt32BigEndian(rowPointer + (j * sizeof(int)));
-                    Marshal.WriteInt32(buffer + (sizeof(int) * ((i * 16) + j)), value);
-                }
+                buffer.BasePointer[i] = (UInt32BE)buffer.BasePointer[i];
             }
-            // zero-free message buffer
-            MarshalExtensions.ZeroMemory(messageBuffer, allocatedSize);
-            Marshal.FreeHGlobal(messageBuffer);
-            // add length (in bits) into final pair of 32-bit integers (big-endian)
-            long len = contentLength * 8;
-            int lenHi = (int)(len >> 32);
-            int lenLo = (int)len;
-            Marshal.WriteInt32(buffer + allocatedSize - sizeof(long), lenHi);
-            Marshal.WriteInt32(buffer + allocatedSize - sizeof(int), lenLo);
 
-            // allocate message schedule
-            IntPtr messageScheduleBuffer = Marshal.AllocHGlobal(msgSchedBufSize);
+            // create a 64-entry message schedule array w[0..63] of 32-bit words
+            uint* messageScheduleBuffer = stackalloc uint[MESSAGE_SCHEDULE_BUFFER_LENGTH];
 
-            // allocate memory for hash and copy constants.
-            IntPtr pHash = Marshal.AllocHGlobal(digestLength);
-            byte[] managedHash = new byte[H.Length * sizeof(uint)];
-            Buffer.BlockCopy(H, 0, managedHash, 0, managedHash.Length);
-            Marshal.Copy(managedHash, 0, pHash, managedHash.Length);
+            DeterministicSpan<uint> resultBuffer = new(8);
+            fixed (uint* pInitialHash = H)
+            {
+                Unsafe.CopyBlockUnaligned(resultBuffer.BasePointer, pInitialHash, DIGEST_LENGTH);
+            }
 
-            // HASH COMPUTATION
+            uint* workBuffer = stackalloc uint[8];
+
+            // Process the message in successive 512 - bit chunks (64 byte blocks / 16 uint blocks)
             for (int i = 0; i < blockCount; i++)
             {
-                // prepare message schedule
-                for (int j = 0; j < 16; j++)
-                {
-                    int value = Marshal.ReadInt32(buffer + (sizeof(int) * ((i * 16) + j)));
-                    Marshal.WriteInt32(messageScheduleBuffer + (j * sizeof(int)), value);
-                }
+                // copy current chunk (64 bytes) into first 16 words w[0..15] of the message schedule array
+                Unsafe.CopyBlockUnaligned(messageScheduleBuffer, buffer.BasePointer + (i << 4), 64);
+                // Extend the first 16 words into the remaining 48 words w[16..63] of the message schedule array:
                 for (int j = 16; j < 64; j++)
                 {
-                    uint value = sigma1((uint)Marshal.ReadInt32(messageScheduleBuffer + ((j - 2) * sizeof(int))))
-                                 + (uint)Marshal.ReadInt32(messageScheduleBuffer + ((j - 7) * sizeof(int)))
-                                 + sigma0((uint)Marshal.ReadInt32(messageScheduleBuffer + ((j - 15) * sizeof(int))))
-                                 + (uint)Marshal.ReadInt32(messageScheduleBuffer + ((j - 16) * sizeof(int)));
-                    Marshal.WriteInt32(messageScheduleBuffer + (j * sizeof(int)), (int)value);
+                    /*
+                        s0 := (w[i-15] rightrotate  7) xor (w[i-15] rightrotate 18) xor (w[i-15] rightshift  3)
+                        s1 := (w[i- 2] rightrotate 17) xor (w[i- 2] rightrotate 19) xor (w[i- 2] rightshift 10)
+                        w[i] := w[i-16] + s0 + w[i-7] + s1
+                        */
+                    uint s0 = ((messageScheduleBuffer[j - 15] >> 7) | (messageScheduleBuffer[j - 15] << 25))
+                        ^ ((messageScheduleBuffer[j - 15] >> 18) | (messageScheduleBuffer[j - 15] << 14))
+                        ^ (messageScheduleBuffer[j - 15] >> 3);
+                    uint s1 = ((messageScheduleBuffer[j - 2] >> 17) | (messageScheduleBuffer[j - 2] << 15))
+                        ^ ((messageScheduleBuffer[j - 2] >> 19) | (messageScheduleBuffer[j - 2] << 13))
+                        ^ (messageScheduleBuffer[j - 2] >> 10);
+                    messageScheduleBuffer[j] = messageScheduleBuffer[j - 16] + s0 + messageScheduleBuffer[j - 7] + s1;
                 }
-                // initialize working variables a, b, c, d, e, f, g, h with previous hash value
-                uint a = (uint)Marshal.ReadInt32(pHash + (0 * sizeof(int)));
-                uint b = (uint)Marshal.ReadInt32(pHash + (1 * sizeof(int)));
-                uint c = (uint)Marshal.ReadInt32(pHash + (2 * sizeof(int)));
-                uint d = (uint)Marshal.ReadInt32(pHash + (3 * sizeof(int)));
-                uint e = (uint)Marshal.ReadInt32(pHash + (4 * sizeof(int)));
-                uint f = (uint)Marshal.ReadInt32(pHash + (5 * sizeof(int)));
-                uint g = (uint)Marshal.ReadInt32(pHash + (6 * sizeof(int)));
-                uint h = (uint)Marshal.ReadInt32(pHash + (7 * sizeof(int)));
-                // main loop
+                Unsafe.CopyBlockUnaligned(workBuffer, resultBuffer.BasePointer, DIGEST_LENGTH);
                 for (int j = 0; j < 64; j++)
                 {
-                    uint t1 = h + sum1(e) + Ch(e, f, g) + K[j] + (uint)Marshal.ReadInt32(messageScheduleBuffer + (j * sizeof(int)));
-                    uint t2 = sum0(a) + Maj(a, b, c);
-                    h = g;
-                    g = f;
-                    f = e;
-                    e = d + t1;
-                    d = c;
-                    c = b;
-                    b = a;
-                    a = t1 + t2;
+                    // S1 := (e rightrotate 6) xor (e rightrotate 11) xor (e rightrotate 25)
+                    uint s1 = RightRotate(workBuffer[4], 6)
+                        ^ RightRotate(workBuffer[4], 11)
+                        ^ RightRotate(workBuffer[4], 25);
+                    // ch:= (e and f) xor((not e) and g)
+                    uint ch = (workBuffer[4] & workBuffer[5]) ^ ((~workBuffer[4]) & workBuffer[6]);
+                    // temp1:= h + S1 + ch + k[i] + w[i]
+                    uint temp1 = unchecked(workBuffer[7] + s1 + ch + K[j] + messageScheduleBuffer[j]);
+                    // S0:= (a rightrotate 2) xor(a rightrotate 13) xor(a rightrotate 22)
+                    uint s0 = RightRotate(workBuffer[0], 2)
+                        ^ RightRotate(workBuffer[0], 13)
+                        ^ RightRotate(workBuffer[0], 22);
+                    // maj:= (a and b) xor(a and c) xor(b and c)
+                    uint maj = (workBuffer[0] & workBuffer[1])
+                        ^ (workBuffer[0] & workBuffer[2])
+                        ^ (workBuffer[1] & workBuffer[2]);
+                    // temp2:= S0 + maj
+                    uint temp2 = s0 + maj;
+
+                    // h:= g
+                    workBuffer[7] = workBuffer[6];
+                    // g:= f
+                    workBuffer[6] = workBuffer[5];
+                    // f:= e
+                    workBuffer[5] = workBuffer[4];
+                    // e:= d + temp1
+                    workBuffer[4] = workBuffer[3] + temp1;
+                    // d:= c
+                    workBuffer[3] = workBuffer[2];
+                    // c:= b
+                    workBuffer[2] = workBuffer[1];
+                    // b:= a
+                    workBuffer[1] = workBuffer[0];
+                    // a:= temp1 + temp2
+                    workBuffer[0] = temp1 + temp2;
                 }
-                // compute the new intermediate hash value
-                Marshal.WriteInt32(pHash + (0 * sizeof(int)), (int)((uint)Marshal.ReadInt32(pHash + (0 * sizeof(int))) + a));
-                Marshal.WriteInt32(pHash + (1 * sizeof(int)), (int)((uint)Marshal.ReadInt32(pHash + (1 * sizeof(int))) + b));
-                Marshal.WriteInt32(pHash + (2 * sizeof(int)), (int)((uint)Marshal.ReadInt32(pHash + (2 * sizeof(int))) + c));
-                Marshal.WriteInt32(pHash + (3 * sizeof(int)), (int)((uint)Marshal.ReadInt32(pHash + (3 * sizeof(int))) + d));
-                Marshal.WriteInt32(pHash + (4 * sizeof(int)), (int)((uint)Marshal.ReadInt32(pHash + (4 * sizeof(int))) + e));
-                Marshal.WriteInt32(pHash + (5 * sizeof(int)), (int)((uint)Marshal.ReadInt32(pHash + (5 * sizeof(int))) + f));
-                Marshal.WriteInt32(pHash + (6 * sizeof(int)), (int)((uint)Marshal.ReadInt32(pHash + (6 * sizeof(int))) + g));
-                Marshal.WriteInt32(pHash + (7 * sizeof(int)), (int)((uint)Marshal.ReadInt32(pHash + (7 * sizeof(int))) + h));
+                unchecked
+                {
+                    uint* pResult = resultBuffer.BasePointer;
+                    // Add the compressed chunk to the current hash value:
+                    // h0:= h0 + a
+                    // h1:= h1 + b
+                    // h2:= h2 + c
+                    // h3:= h3 + d
+                    // h4:= h4 + e
+                    // h5:= h5 + f
+                    // h6:= h6 + g
+                    // h7:= h7 + h
+                    pResult[0] += workBuffer[0];
+                    pResult[1] += workBuffer[1];
+                    pResult[2] += workBuffer[2];
+                    pResult[3] += workBuffer[3];
+                    pResult[4] += workBuffer[4];
+                    pResult[5] += workBuffer[5];
+                    pResult[6] += workBuffer[6];
+                    pResult[7] += workBuffer[7];
+                }
             }
-            MarshalExtensions.Int32LittleEndianArrayToBigEndian(pHash, digestLength);
-            // zero-free used buffers
-            MarshalExtensions.ZeroMemory(messageScheduleBuffer, msgSchedBufSize);
-            Marshal.FreeHGlobal(messageScheduleBuffer);
-            MarshalExtensions.ZeroMemory(buffer, allocatedSize);
-            Marshal.FreeHGlobal(buffer);
-            // return pointer to computed hash (needs to be freed by caller).
-            return pHash;
+            for (int i = 0; i < 8; i++)
+            {
+                resultBuffer.BasePointer[i] = (UInt32BE)resultBuffer.BasePointer[i];
+            }
+            return resultBuffer.CastAs<byte>();
         }
+
+        public DeterministicSpan<byte> DigestUnoptimized<T>(IUnmanaged<T> memory) where T : unmanaged
+        {
+            int dataLength = memory.ByteSize;
+            // convert string msg into 512-bit blocks (array of 16 32-bit integers) [§5.2.1]
+            // length (in 32-bit integers) of content length + 0x80 byte padding + appended length
+            int int32Length = (dataLength >> 2) + 3;
+            // number of 16-integer (512-bit) blocks required to hold the data
+            // is equivilant to ceil(int32Length / 16d)
+            int blockCount = (int32Length >> 4) + (((-(int32Length & 0xF)) >> 31) & 0x1);
+            // blockCount * 16;
+            int allocatedSize = blockCount << 4;
+            using DeterministicSpan<uint> buffer = new(allocatedSize);
+            buffer.ZeroMemory();
+            using (IMemoryAccess<T> memoryAccess = memory.GetAccess())
+            {
+                Unsafe.CopyBlockUnaligned(buffer.BasePointer, memoryAccess.Pointer, memoryAccess.ByteSize);
+            }
+            // append padding
+            ((byte*)buffer.BasePointer)[dataLength] = 0x80;
+            // calculate length of original message in bits
+            UInt64BE bitLength = (UInt64BE)(((ulong)dataLength) << 3);
+            // write message length as 64 bit big endian unsigned integer to the end of the buffer
+            *(ulong*)(buffer.BasePointer + buffer.Size - 2) = bitLength;
+            // convert 32 bit word wise back to little endian.
+            for (int i = 0; i < allocatedSize; i++)
+            {
+                buffer.BasePointer[i] = (UInt32BE)buffer.BasePointer[i];
+            }
+
+            // create a 64-entry message schedule array w[0..63] of 32-bit words
+            uint* messageScheduleBuffer = stackalloc uint[MESSAGE_SCHEDULE_BUFFER_LENGTH];
+
+            DeterministicSpan<uint> resultBuffer = new(8);
+            fixed (uint* pInitialHash = H)
+            {
+                Unsafe.CopyBlockUnaligned(resultBuffer.BasePointer, pInitialHash, DIGEST_LENGTH);
+            }
+
+            uint* workBuffer = stackalloc uint[8];
+
+            // Process the message in successive 512 - bit chunks (64 byte blocks / 16 uint blocks)
+            for (int i = 0; i < blockCount; i++)
+            {
+                // copy current chunk (64 bytes) into first 16 words w[0..15] of the message schedule array
+                Unsafe.CopyBlockUnaligned(messageScheduleBuffer, buffer.BasePointer + (i << 4), 64);
+                // Extend the first 16 words into the remaining 48 words w[16..63] of the message schedule array:
+                for (int j = 16; j < 64; j++)
+                {
+                    /*
+                        s0 := (w[i-15] rightrotate  7) xor (w[i-15] rightrotate 18) xor (w[i-15] rightshift  3)
+                        s1 := (w[i- 2] rightrotate 17) xor (w[i- 2] rightrotate 19) xor (w[i- 2] rightshift 10)
+                        w[i] := w[i-16] + s0 + w[i-7] + s1
+                        */
+                    uint s0 = ((messageScheduleBuffer[j - 15] >> 7) | (messageScheduleBuffer[j - 15] << 25))
+                        ^ ((messageScheduleBuffer[j - 15] >> 18) | (messageScheduleBuffer[j - 15] << 14))
+                        ^ (messageScheduleBuffer[j - 15] >> 3);
+                    uint s1 = ((messageScheduleBuffer[j - 2] >> 17) | (messageScheduleBuffer[j - 2] << 15))
+                        ^ ((messageScheduleBuffer[j - 2] >> 19) | (messageScheduleBuffer[j - 2] << 13))
+                        ^ (messageScheduleBuffer[j - 2] >> 10);
+                    messageScheduleBuffer[j] = messageScheduleBuffer[j - 16] + s0 + messageScheduleBuffer[j - 7] + s1;
+                }
+                Unsafe.CopyBlockUnaligned(workBuffer, resultBuffer.BasePointer, DIGEST_LENGTH);
+                for (int j = 0; j < 64; j++)
+                {
+                    // S1 := (e rightrotate 6) xor (e rightrotate 11) xor (e rightrotate 25)
+                    uint s1 = RightRotate(workBuffer[4], 6)
+                        ^ RightRotate(workBuffer[4], 11)
+                        ^ RightRotate(workBuffer[4], 25);
+                    // ch:= (e and f) xor((not e) and g)
+                    uint ch = (workBuffer[4] & workBuffer[5]) ^ ((~workBuffer[4]) & workBuffer[6]);
+                    // temp1:= h + S1 + ch + k[i] + w[i]
+                    uint temp1 = unchecked(workBuffer[7] + s1 + ch + K[j] + messageScheduleBuffer[j]);
+                    // S0:= (a rightrotate 2) xor(a rightrotate 13) xor(a rightrotate 22)
+                    uint s0 = RightRotate(workBuffer[0], 2)
+                        ^ RightRotate(workBuffer[0], 13)
+                        ^ RightRotate(workBuffer[0], 22);
+                    // maj:= (a and b) xor(a and c) xor(b and c)
+                    uint maj = (workBuffer[0] & workBuffer[1])
+                        ^ (workBuffer[0] & workBuffer[2])
+                        ^ (workBuffer[1] & workBuffer[2]);
+                    // temp2:= S0 + maj
+                    uint temp2 = s0 + maj;
+
+                    // h:= g
+                    workBuffer[7] = workBuffer[6];
+                    // g:= f
+                    workBuffer[6] = workBuffer[5];
+                    // f:= e
+                    workBuffer[5] = workBuffer[4];
+                    // e:= d + temp1
+                    workBuffer[4] = workBuffer[3] + temp1;
+                    // d:= c
+                    workBuffer[3] = workBuffer[2];
+                    // c:= b
+                    workBuffer[2] = workBuffer[1];
+                    // b:= a
+                    workBuffer[1] = workBuffer[0];
+                    // a:= temp1 + temp2
+                    workBuffer[0] = temp1 + temp2;
+                }
+                unchecked
+                {
+                    uint* pResult = resultBuffer.BasePointer;
+                    // Add the compressed chunk to the current hash value:
+                    // h0:= h0 + a
+                    // h1:= h1 + b
+                    // h2:= h2 + c
+                    // h3:= h3 + d
+                    // h4:= h4 + e
+                    // h5:= h5 + f
+                    // h6:= h6 + g
+                    // h7:= h7 + h
+                    pResult[0] += workBuffer[0];
+                    pResult[1] += workBuffer[1];
+                    pResult[2] += workBuffer[2];
+                    pResult[3] += workBuffer[3];
+                    pResult[4] += workBuffer[4];
+                    pResult[5] += workBuffer[5];
+                    pResult[6] += workBuffer[6];
+                    pResult[7] += workBuffer[7];
+                }
+            }
+            for (int i = 0; i < 8; i++)
+            {
+                resultBuffer.BasePointer[i] = (UInt32BE)resultBuffer.BasePointer[i];
+            }
+            return resultBuffer.CastAs<byte>();
+        }
+
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static uint RightRotate(uint source, byte bitCount) =>
+            (source >> bitCount) | (source << (32 - bitCount));
     }
 }

@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System;
+using System.Runtime.CompilerServices;
 
 namespace PrySec.Base.Memory.MemoryManagement
 {
@@ -44,5 +45,8 @@ namespace PrySec.Base.Memory.MemoryManagement
 
         public static AllocationSnapshot GetAllocationSnapshotForThread() =>
             (_memoryManagerImpl as MemoryManagerDebugImpl)?.GetAllocationSnapshotForThread() ?? new AllocationSnapshot(new());
+
+        public static void ZeroMemory<T>(T* ptr, int count) where T : unmanaged =>
+            new Span<byte>(ptr, count * sizeof(T)).Fill(0);
     }
 }

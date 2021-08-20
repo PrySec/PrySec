@@ -5,7 +5,9 @@ VisualStudioVersion = 16.0.31410.357
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PrySec.Base", "PrySec.Base\PrySec.Base.csproj", "{E7977464-5E85-4A28-AE9D-9F65A740A563}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PrySec.Security", "PrySec.Security\PrySec.Security.csproj", "{FCAC5F84-D1A8-4C59-8344-0ABC7C9D3C88}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PrySec.Security", "PrySec.Security\PrySec.Security.csproj", "{FCAC5F84-D1A8-4C59-8344-0ABC7C9D3C88}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Testing", "Testing\Testing.csproj", "{DFC570B3-FA45-4472-A689-B7EDE82B4DEC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{FCAC5F84-D1A8-4C59-8344-0ABC7C9D3C88}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FCAC5F84-D1A8-4C59-8344-0ABC7C9D3C88}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FCAC5F84-D1A8-4C59-8344-0ABC7C9D3C88}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DFC570B3-FA45-4472-A689-B7EDE82B4DEC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DFC570B3-FA45-4472-A689-B7EDE82B4DEC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DFC570B3-FA45-4472-A689-B7EDE82B4DEC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DFC570B3-FA45-4472-A689-B7EDE82B4DEC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

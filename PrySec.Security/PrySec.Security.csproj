@@ -13,11 +13,18 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\PrySec.Base\PrySec.Base.csproj" />
+    <Compile Remove="MemoryProtection\Native\**" />
+    <EmbeddedResource Remove="MemoryProtection\Native\**" />
+    <None Remove="MemoryProtection\Native\**" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="MemoryProtection\Native\" />
+    <None Remove="Cryptography\Hashs\Sha256Scp.cs~RF19e0fe0.TMP" />
+    <None Remove="Cryptography\Hashs\Sha256Scp.cs~RFf644e1.TMP" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PrySec.Base\PrySec.Base.csproj" />
   </ItemGroup>
 
 </Project>
