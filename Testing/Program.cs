@@ -34,14 +34,9 @@ unsafe
         {
 #if custom
             using DeterministicSpan<byte> result = Sha1Scp.Digest(buffer);
-            Console.WriteLine("Calculated result is:");
-            Console.WriteLine(Convert.ToHexString(result.AsSpan()));
-            Console.WriteLine("Expected result was:");
-            Console.WriteLine("A9993E364706816ABA3E25717850C26C9CD0D89D");
-            return;
+            //Console.WriteLine(Convert.ToHexString(result.AsSpan()));
 #else
-            byte[] result = sha.ComputeHash(buffer);
-            Console.WriteLine(Convert.ToHexString(result));
+            sha.ComputeHash(buffer);
 #endif
         }
         Stopwatch stopwatch = new Stopwatch();
@@ -63,7 +58,7 @@ unsafe
 }
 
 /*
-Timing:
+Timing SHA2:
 
 00:00:18.6424317
 That's 0.00074568 ms / hash
@@ -85,6 +80,30 @@ pmdbs2XNative Timing:
 That's 0.00141088 ms / hash
 Or 708777.500567022 hashes / s
 
+
+======================================
+
+SHA-1 
+
+unoptimized custom:
+
+00:00:14.7704745
+That's 0.0005908 ms / hash
+Or 1692620.1760324985 hashes / s
+
+using seperate variables:
+
+00:00:14.3765852
+That's 0.00057504 ms / hash
+Or 1739009.4602114637 hashes / s
+
+-------------------------------------------
+
+BUILT-IN Timing:
+
+00:00:05.9739521
+That's 0.00023892 ms / hash
+Or 4185501.423070484 hashes / s
  */
 
 static unsafe void PrintBuffer(uint* buffer)
