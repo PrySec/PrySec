@@ -26,16 +26,22 @@ unsafe
         byte* utf8Bytes = (byte*)buffer.BasePointer;
         Encoding.UTF8.GetBytes(pStr, strLength, utf8Bytes, rawUtf8Length);
 #else
-        SHA256Managed sha = new();
+        SHA1Managed sha = new();
         byte[] buffer = Encoding.UTF8.GetBytes(str);
 #endif
         Console.WriteLine("Warmup...");
         for (int i = 0; i < WARMUP; i++)
         {
 #if custom
-            using DeterministicSpan<byte> result = Sha256Scp.Digest(buffer);
+            using DeterministicSpan<byte> result = Sha1Scp.Digest(buffer);
+            Console.WriteLine("Calculated result is:");
+            Console.WriteLine(Convert.ToHexString(result.AsSpan()));
+            Console.WriteLine("Expected result was:");
+            Console.WriteLine("A9993E364706816ABA3E25717850C26C9CD0D89D");
+            return;
 #else
-            sha.ComputeHash(buffer);
+            byte[] result = sha.ComputeHash(buffer);
+            Console.WriteLine(Convert.ToHexString(result));
 #endif
         }
         Stopwatch stopwatch = new Stopwatch();
@@ -44,7 +50,7 @@ unsafe
         for (int i = 0; i < ITERATIONS; i++)
         {
 #if custom
-            using DeterministicSpan<byte> result = Sha256Scp.Digest(buffer);
+            using DeterministicSpan<byte> result = Sha1Scp.Digest(buffer);
 #else
             sha.ComputeHash(buffer);
 #endif
@@ -80,7 +86,6 @@ That's 0.00141088 ms / hash
 Or 708777.500567022 hashes / s
 
  */
-
 
 static unsafe void PrintBuffer(uint* buffer)
 {

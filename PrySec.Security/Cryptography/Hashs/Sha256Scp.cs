@@ -73,6 +73,8 @@ namespace PrySec.Security.Cryptography.Hashs
 
             // create a buffer to hold the result
             DeterministicSpan<uint> resultBuffer = new(8);
+
+            // initialize result hash
             fixed (uint* pInitialHash = H)
             {
                 Unsafe.CopyBlockUnaligned(resultBuffer.BasePointer, pInitialHash, DIGEST_LENGTH);
