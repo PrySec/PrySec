@@ -1,82 +1,48 @@
 ﻿using PrySec.Base.Memory;
-using PrySec.Base.Primitives;
 using PrySec.Security.MemoryProtection.Universal;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace PrySec.Security.Cryptography.Hashs
 {
-    public static unsafe class Sha1Scp
+    public unsafe class Sha1Scp : ShaScpBase
     {
-        private static readonly uint[] H = new uint[DIGEST_DWORD_LENGTH] 
-        {0x67452301u, 0xEFCDAB89u, 0x98BADCFEu, 0x10325476u, 0xC3D2E1F0u};
-
-        private const uint H0 = 0x67452301u;
-        private const uint H1 = 0xEFCDAB89u;
-        private const uint H2 = 0x98BADCFEu;
-        private const uint H3 = 0x10325476u;
-        private const uint H4 = 0xC3D2E1F0u;
-
         private const int DIGEST_DWORD_LENGTH = 5;
-
         private const int DIGEST_LENGTH = DIGEST_DWORD_LENGTH * sizeof(uint);
 
         private const int MESSAGE_SCHEDULE_BUFFER_LENGTH = 80;
 
-        public static DeterministicSpan<byte> Digest<T>(IUnmanaged<T> memory) where T : unmanaged
+        private static readonly uint[] H = new uint[5]
         {
-            int dataLength = memory.ByteSize;
+            0x67452301u,
+            0xEFCDAB89u,
+            0x98BADCFEu,
+            0x10325476u,
+            0xC3D2E1F0u
+        };
 
-            // convert string msg into 512-bit blocks (array of 16 32-bit integers) [§5.2.1]
-            // length (in 32-bit integers) of content length + 0x80 byte padding + appended length
-            int int32Length = (dataLength >> 2) + 3;
-
-            // number of 16-integer (512-bit) blocks required to hold the data
-            // is equivilant to ceil(int32Length / 16d)
-            int blockCount = (int32Length >> 4) + (((-(int32Length & 0xF)) >> 31) & 0x1);
-
-            // blockCount * 16;
-            int allocatedSize = blockCount << 4;
-
-            using DeterministicSpan<uint> buffer = new(allocatedSize);
-            buffer.ZeroMemory();
-            using (IMemoryAccess<T> memoryAccess = memory.GetAccess())
-            {
-                Unsafe.CopyBlockUnaligned(buffer.BasePointer, memoryAccess.Pointer, memoryAccess.ByteSize);
-            }
-
-            // append padding
-            ((byte*)buffer.BasePointer)[dataLength] = 0x80;
-
-            // calculate length of original message in bits
-            // write message length as 64 bit big endian unsigned integer to the end of the buffer
-            *(ulong*)(buffer.BasePointer + buffer.Size - 2) = (UInt64BE)(((ulong)dataLength) << 3);
-
-            // convert 32 bit word wise back to little endian.
-            for (int i = 0; i < allocatedSize; i++)
-            {
-                buffer.BasePointer[i] = (UInt32BE)buffer.BasePointer[i];
-            }
-
+        private protected override DeterministicSpan<byte> HashCore(ref ShaScpState state)
+        {
             // create a 80-entry message schedule array w[0..79] of 32-bit words
             uint* messageScheduleBuffer = stackalloc uint[MESSAGE_SCHEDULE_BUFFER_LENGTH];
 
-            uint h0 = H0;
-            uint h1 = H1;
-            uint h2 = H2;
-            uint h3 = H3;
-            uint h4 = H4;
+            // create a buffer to hold the result
+            DeterministicSpan<uint> resultBuffer = new(DIGEST_DWORD_LENGTH);
+
+            // initialize result hash
+            fixed (uint* pInitialHash = H)
+            {
+                Unsafe.CopyBlockUnaligned(resultBuffer.BasePointer, pInitialHash, DIGEST_LENGTH);
+            }
+
+            int j;
+            uint a, b, c, d, e;
 
             // Process the message in successive 512 - bit chunks (64 byte blocks / 16 uint blocks)
-            for (int i = 0; i < blockCount; i++)
+            for (int i = 0; i < state.BlockCount; i++)
             {
                 // copy current chunk (64 bytes) into first 16 words w[0..15] of the message schedule array
-                Unsafe.CopyBlockUnaligned(messageScheduleBuffer, buffer.BasePointer + (i << 4), 64);
-                int j;
+                Unsafe.CopyBlockUnaligned(messageScheduleBuffer, state.Buffer.BasePointer + (i << 4), 64);
+
                 // Message schedule: extend the sixteen 32-bit words into eighty 32-bit words
                 for (j = 16; j < MESSAGE_SCHEDULE_BUFFER_LENGTH; j++)
                 {
@@ -89,744 +55,91 @@ namespace PrySec.Security.Cryptography.Hashs
                 }
 
                 // Initialize hash value for this chunk
-                uint a = h0;
-                uint b = h1;
-                uint c = h2;
-                uint d = h3;
-                uint e = h4;
-
-                #region Main compression loop (SCALAR)
-                
-                uint f, k, temp;
-
-                f = (b & c) | ((~b) & d);
-                k = 0x5A827999u;
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[0]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                f = (b & c) | ((~b) & d);
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[1]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                f = (b & c) | ((~b) & d);
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[2]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                f = (b & c) | ((~b) & d);
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[3]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                f = (b & c) | ((~b) & d);
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[4]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                f = (b & c) | ((~b) & d);
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[5]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                f = (b & c) | ((~b) & d);
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[6]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                f = (b & c) | ((~b) & d);
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[7]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                f = (b & c) | ((~b) & d);
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[8]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                f = (b & c) | ((~b) & d);
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[9]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                f = (b & c) | ((~b) & d);
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[10]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                f = (b & c) | ((~b) & d);
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[11]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                f = (b & c) | ((~b) & d);
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[12]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                f = (b & c) | ((~b) & d);
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[13]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                f = (b & c) | ((~b) & d);
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[14]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                f = (b & c) | ((~b) & d);
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[15]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                f = (b & c) | ((~b) & d);
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[16]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                f = (b & c) | ((~b) & d);
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[17]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                f = (b & c) | ((~b) & d);
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[18]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                f = (b & c) | ((~b) & d);
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[19]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 20
-                f = b ^ c ^ d;
-                k = 0x6ED9EBA1u;
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[20]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 21
-                f = b ^ c ^ d;
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[21]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 22
-                f = b ^ c ^ d;
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[22]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 23
-                f = b ^ c ^ d;
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[23]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 24
-                f = b ^ c ^ d;
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[24]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 25
-                f = b ^ c ^ d;
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[25]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 26
-                f = b ^ c ^ d;
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[26]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 27
-                f = b ^ c ^ d;
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[27]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 28
-                f = b ^ c ^ d;
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[28]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 29
-                f = b ^ c ^ d;
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[29]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 30
-                f = b ^ c ^ d;
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[30]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 31
-                f = b ^ c ^ d;
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[31]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 32
-                f = b ^ c ^ d;
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[32]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 33
-                f = b ^ c ^ d;
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[33]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 34
-                f = b ^ c ^ d;
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[34]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 35
-                f = b ^ c ^ d;
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[35]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 36
-                f = b ^ c ^ d;
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[36]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 37
-                f = b ^ c ^ d;
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[37]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 38
-                f = b ^ c ^ d;
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[38]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 39
-                f = b ^ c ^ d;
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[39]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 40
-                f = (b & c) | (b & d) | (c & d);
-                k = 0x8F1BBCDCu;
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[40]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 41
-                f = (b & c) | (b & d) | (c & d);
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[41]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 42
-                f = (b & c) | (b & d) | (c & d);
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[42]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 43
-                f = (b & c) | (b & d) | (c & d);
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[43]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 44
-                f = (b & c) | (b & d) | (c & d);
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[44]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 45
-                f = (b & c) | (b & d) | (c & d);
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[45]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 46
-                f = (b & c) | (b & d) | (c & d);
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[46]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 47
-                f = (b & c) | (b & d) | (c & d);
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[47]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 48
-                f = (b & c) | (b & d) | (c & d);
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[48]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 49
-                f = (b & c) | (b & d) | (c & d);
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[49]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 50
-                f = (b & c) | (b & d) | (c & d);
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[50]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 51
-                f = (b & c) | (b & d) | (c & d);
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[51]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 52
-                f = (b & c) | (b & d) | (c & d);
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[52]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 53
-                f = (b & c) | (b & d) | (c & d);
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[53]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 54
-                f = (b & c) | (b & d) | (c & d);
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[54]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 55
-                f = (b & c) | (b & d) | (c & d);
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[55]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 56
-                f = (b & c) | (b & d) | (c & d);
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[56]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 57
-                f = (b & c) | (b & d) | (c & d);
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[57]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 58
-                f = (b & c) | (b & d) | (c & d);
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[58]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 59
-                f = (b & c) | (b & d) | (c & d);
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[59]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 60
-                f = b ^ c ^ d;
-                k = 0xCA62C1D6u;
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[60]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 61
-                f = b ^ c ^ d;
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[61]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 62
-                f = b ^ c ^ d;
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[62]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 63
-                f = b ^ c ^ d;
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[63]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 64
-                f = b ^ c ^ d;
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[64]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 65
-                f = b ^ c ^ d;
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[65]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 66
-                f = b ^ c ^ d;
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[66]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 67
-                f = b ^ c ^ d;
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[67]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 68
-                f = b ^ c ^ d;
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[68]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 69
-                f = b ^ c ^ d;
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[69]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 70
-                f = b ^ c ^ d;
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[70]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 71
-                f = b ^ c ^ d;
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[71]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 72
-                f = b ^ c ^ d;
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[72]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 73
-                f = b ^ c ^ d;
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[73]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 74
-                f = b ^ c ^ d;
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[74]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 75
-                f = b ^ c ^ d;
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[75]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 76
-                f = b ^ c ^ d;
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[76]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 77
-                f = b ^ c ^ d;
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[77]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 78
-                f = b ^ c ^ d;
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[78]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-
-                // 79
-                f = b ^ c ^ d;
-                temp = unchecked(((a << 5) | (a >> 27)) + f + e + k + messageScheduleBuffer[79]);
-                e = d;
-                d = c;
-                c = (b << 30) | (b >> 2);
-                b = a;
-                a = temp;
-                #endregion
+                a = resultBuffer.BasePointer[0];
+                b = resultBuffer.BasePointer[1];
+                c = resultBuffer.BasePointer[2];
+                d = resultBuffer.BasePointer[3];
+                e = resultBuffer.BasePointer[4];
+
+                #region Main compression loop
+
+                /* Round 1 */
+                for (j = 0; j < 20; j += 5)
+                {
+                    e += ((a << 5) | (a >> 27)) + (d ^ (b & (c ^ d))) + messageScheduleBuffer[j] + 0x5a827999;
+                    b = (b << 30) | (b >> 2);
+                    d += ((e << 5) | (e >> 27)) + (c ^ (a & (b ^ c))) + messageScheduleBuffer[j + 1] + 0x5a827999;
+                    a = (a << 30) | (a >> 2);
+                    c += ((d << 5) | (d >> 27)) + (b ^ (e & (a ^ b))) + messageScheduleBuffer[j + 2] + 0x5a827999;
+                    e = (e << 30) | (e >> 2);
+                    b += ((c << 5) | (c >> 27)) + (a ^ (d & (e ^ a))) + messageScheduleBuffer[j + 3] + 0x5a827999;
+                    d = (d << 30) | (d >> 2);
+                    a += ((b << 5) | (b >> 27)) + (e ^ (c & (d ^ e))) + messageScheduleBuffer[j + 4] + 0x5a827999;
+                    c = (c << 30) | (c >> 2);
+                }
+
+                /* Round 2 */
+                for (; j < 40; j += 5)
+                {
+                    e += ((a << 5) | (a >> 27)) + (b ^ c ^ d) + messageScheduleBuffer[j] + 0x6ed9eba1;
+                    b = (b << 30) | (b >> 2);
+                    d += ((e << 5) | (e >> 27)) + (a ^ b ^ c) + messageScheduleBuffer[j + 1] + 0x6ed9eba1;
+                    a = (a << 30) | (a >> 2);
+                    c += ((d << 5) | (d >> 27)) + (e ^ a ^ b) + messageScheduleBuffer[j + 2] + 0x6ed9eba1;
+                    e = (e << 30) | (e >> 2);
+                    b += ((c << 5) | (c >> 27)) + (d ^ e ^ a) + messageScheduleBuffer[j + 3] + 0x6ed9eba1;
+                    d = (d << 30) | (d >> 2);
+                    a += ((b << 5) | (b >> 27)) + (c ^ d ^ e) + messageScheduleBuffer[j + 4] + 0x6ed9eba1;
+                    c = (c << 30) | (c >> 2);
+                }
+
+                /* Round 3 */
+                for (; j < 60; j += 5)
+                {
+                    e += ((a << 5) | (a >> 27)) + ((b & c) | (d & (b | c))) + messageScheduleBuffer[j] + 0x8f1bbcdc;
+                    b = (b << 30) | (b >> 2);
+                    d += ((e << 5) | (e >> 27)) + ((a & b) | (c & (a | b))) + messageScheduleBuffer[j + 1] + 0x8f1bbcdc;
+                    a = (a << 30) | (a >> 2);
+                    c += ((d << 5) | (d >> 27)) + ((e & a) | (b & (e | a))) + messageScheduleBuffer[j + 2] + 0x8f1bbcdc;
+                    e = (e << 30) | (e >> 2);
+                    b += ((c << 5) | (c >> 27)) + ((d & e) | (a & (d | e))) + messageScheduleBuffer[j + 3] + 0x8f1bbcdc;
+                    d = (d << 30) | (d >> 2);
+                    a += ((b << 5) | (b >> 27)) + ((c & d) | (e & (c | d))) + messageScheduleBuffer[j + 4] + 0x8f1bbcdc;
+                    c = (c << 30) | (c >> 2);
+                }
+
+                /* Round 4 */
+                for (; j < 80; j += 5)
+                {
+                    e += ((a << 5) | (a >> 27)) + (b ^ c ^ d) + messageScheduleBuffer[j] + 0xca62c1d6;
+                    b = (b << 30) | (b >> 2);
+                    d += ((e << 5) | (e >> 27)) + (a ^ b ^ c) + messageScheduleBuffer[j + 1] + 0xca62c1d6;
+                    a = (a << 30) | (a >> 2);
+                    c += ((d << 5) | (d >> 27)) + (e ^ a ^ b) + messageScheduleBuffer[j + 2] + 0xca62c1d6;
+                    e = (e << 30) | (e >> 2);
+                    b += ((c << 5) | (c >> 27)) + (d ^ e ^ a) + messageScheduleBuffer[j + 3] + 0xca62c1d6;
+                    d = (d << 30) | (d >> 2);
+                    a += ((b << 5) | (b >> 27)) + (c ^ d ^ e) + messageScheduleBuffer[j + 4] + 0xca62c1d6;
+                    c = (c << 30) | (c >> 2);
+                }
+
+                #endregion Main compression loop
 
                 // Add this chunk's hash to result so far
                 unchecked
                 {
-                    h0 += a;
-                    h1 += b;
-                    h2 += c;
-                    h3 += d;
-                    h4 += e;
+                    resultBuffer.BasePointer[0] += a;
+                    resultBuffer.BasePointer[1] += b;
+                    resultBuffer.BasePointer[2] += c;
+                    resultBuffer.BasePointer[3] += d;
+                    resultBuffer.BasePointer[4] += e;
                 }
             }
 
-            // Zero used stack memory
-            new Span<uint>(messageScheduleBuffer, MESSAGE_SCHEDULE_BUFFER_LENGTH).Fill(0x0);
+            UnsafeReference<uint> pMessageScheduleBuffer = new(messageScheduleBuffer, MESSAGE_SCHEDULE_BUFFER_LENGTH);
 
-            // create a buffer to hold the result
-            DeterministicSpan<uint> resultBuffer = new(DIGEST_DWORD_LENGTH);
-            resultBuffer.BasePointer[0] = (UInt32BE)h0;
-            resultBuffer.BasePointer[1] = (UInt32BE)h1;
-            resultBuffer.BasePointer[2] = (UInt32BE)h2;
-            resultBuffer.BasePointer[3] = (UInt32BE)h3;
-            resultBuffer.BasePointer[4] = (UInt32BE)h4;
-
-            return resultBuffer.CastAs<byte>();
+            // finalize the hash, zero used memory and fix endianness
+            return HashFinalize(ref state, ref resultBuffer, ref pMessageScheduleBuffer);
         }
     }
 }

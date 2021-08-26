@@ -25,27 +25,28 @@ unsafe
         using UnmangedSpan<byte> buffer = new(rawUtf8Length);
         byte* utf8Bytes = (byte*)buffer.BasePointer;
         Encoding.UTF8.GetBytes(pStr, strLength, utf8Bytes, rawUtf8Length);
+        Sha1Scp sha = new();
 #else
-        SHA1Managed sha = new();
+        SHA256CryptoServiceProvider sha = new();
         byte[] buffer = Encoding.UTF8.GetBytes(str);
 #endif
         Console.WriteLine("Warmup...");
         for (int i = 0; i < WARMUP; i++)
         {
 #if custom
-            using DeterministicSpan<byte> result = Sha1Scp.Digest(buffer);
+            using DeterministicSpan<byte> result = sha.ComputeHash(buffer);
             //Console.WriteLine(Convert.ToHexString(result.AsSpan()));
 #else
             sha.ComputeHash(buffer);
 #endif
         }
-        Stopwatch stopwatch = new Stopwatch();
+        Stopwatch stopwatch = new();
         Console.WriteLine("Measuring...");
         stopwatch.Start();
         for (int i = 0; i < ITERATIONS; i++)
         {
 #if custom
-            using DeterministicSpan<byte> result = Sha1Scp.Digest(buffer);
+            using DeterministicSpan<byte> result = sha.ComputeHash(buffer);
 #else
             sha.ComputeHash(buffer);
 #endif

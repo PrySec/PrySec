@@ -6,13 +6,14 @@
         {
             Pointer = ptr;
             Size = size;
+            ByteSize = size * sizeof(T);
         }
 
         public readonly T* Pointer { get; }
 
         public readonly int Size { get; }
 
-        public Size_T ByteSize => Size;
+        public Size_T ByteSize { get; }
 
         public readonly void Dispose()
         {
