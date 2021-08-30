@@ -10,7 +10,7 @@ namespace PrySec.Base.Memory
     {
         public int Size { get; }
 
-        public int ByteSize { get;}
+        public Size_T ByteSize { get;}
 
         public T* BasePointer { get; protected set; }
 

@@ -13,7 +13,7 @@ namespace PrySec.Security.MemoryProtection.Universal
     {
         public readonly int Size { get; }
 
-        public readonly int ByteSize { get; }
+        public readonly Size_T ByteSize { get; }
 
         public readonly T* BasePointer { get; }
 
