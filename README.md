@@ -19,6 +19,13 @@ Stop people from prying around in your process's memory!
 ### Security
 
 - High performance cryptography library (AES, SHA family hashes, Scrypt, BLAKE2, ...) operating completely on protected memory, allowing you to use your protected secrets without compromising them (unlike [`SecureString`](https://docs.microsoft.com/en-us/dotnet/api/system.security.securestring?view=net-5.0) for example).
+  - [ ] AES
+  - [ ] SHA Family
+    - [x] SHA-1
+    - [x] SHA-224
+    - [x] SHA-256
+    - [x] SHA-384
+    - [x] SHA-512
 - Unified high and low level interfaces for all cryptographic functions  for protected and unprotected memory alike.
 
 ### Offensive
