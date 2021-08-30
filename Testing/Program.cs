@@ -25,7 +25,7 @@ unsafe
         using UnmangedSpan<byte> buffer = new(rawUtf8Length);
         byte* utf8Bytes = (byte*)buffer.BasePointer;
         Encoding.UTF8.GetBytes(pStr, strLength, utf8Bytes, rawUtf8Length);
-        Sha1Scp sha = new();
+        Sha256Scp sha = new();
 #else
         SHA256CryptoServiceProvider sha = new();
         byte[] buffer = Encoding.UTF8.GetBytes(str);

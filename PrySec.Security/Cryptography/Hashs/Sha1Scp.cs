@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 
 namespace PrySec.Security.Cryptography.Hashs
 {
-    public unsafe class Sha1Scp : ShaScpBase
+    public unsafe class Sha1Scp : ShaUInt32Scp
     {
         private const int DIGEST_DWORD_LENGTH = 5;
         private const int DIGEST_LENGTH = DIGEST_DWORD_LENGTH * sizeof(uint);
@@ -20,7 +20,7 @@ namespace PrySec.Security.Cryptography.Hashs
             0xC3D2E1F0u
         };
 
-        private protected override DeterministicSpan<byte> HashCore(ref ShaScpState state)
+        private protected override DeterministicSpan<byte> HashCore(ref ShaScpState<uint> state)
         {
             // create a 80-entry message schedule array w[0..79] of 32-bit words
             uint* messageScheduleBuffer = stackalloc uint[MESSAGE_SCHEDULE_BUFFER_LENGTH];

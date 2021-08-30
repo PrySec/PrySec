@@ -16,7 +16,7 @@ namespace PrySec.Security.Cryptography.Hashs
         {
         }
         
-        private protected override DeterministicSpan<byte> HashCore(ref ShaScpState state)
+        private protected override DeterministicSpan<byte> HashCore(ref ShaScpState<uint> state)
         {
             // create a 64-entry message schedule array w[0..63] of 32-bit words
             uint* messageScheduleBuffer = stackalloc uint[MESSAGE_SCHEDULE_BUFFER_LENGTH];

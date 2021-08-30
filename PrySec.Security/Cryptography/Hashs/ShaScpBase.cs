@@ -6,25 +6,35 @@ using System.Runtime.CompilerServices;
 
 namespace PrySec.Security.Cryptography.Hashs
 {
-    public abstract unsafe class ShaScpBase : IHashFunctionScp
+    public abstract unsafe class ShaScpBase<TWord> : IHashFunctionScp where TWord : unmanaged
     {
+        /// <summary>
+        /// 2 for 32 bit algorithms, 3 for 64 bit
+        /// </summary>
+        private readonly int WORD_SIZE_LOG_2;
+
+        private protected ShaScpBase(int wordSizeLog2)
+        {
+            WORD_SIZE_LOG_2 = wordSizeLog2;
+        }
+
         public DeterministicSpan<byte> ComputeHash<T>(IUnmanaged<T> memory) where T : unmanaged
         {
             int dataLength = memory.ByteSize;
 
-            // convert string msg into 512-bit blocks (array of 16 32-bit integers) [§5.2.1]
-            // length (in 32-bit integers) of content length + 0x80 byte padding + appended length
-            int int32Length = (dataLength >> 2) + 3;
+            // convert string msg into blocks (array of 16 32-bit or 64-bit integers) [§5.2.1]
+            // length (in words) of content length + 0x80 byte padding + appended length
+            int wordLength = (dataLength >> WORD_SIZE_LOG_2) + 3;
 
-            // number of 16-integer (512-bit) blocks required to hold the data
-            // is equivilant to ceil(int32Length / 16d)
-            int blockCount = (int32Length >> 4) + (((-(int32Length & 0xF)) >> 31) & 0x1);
+            // number of 16-word blocks required to hold the data
+            // is equivilant to ceil(wordLength / 16d)
+            int blockCount = (wordLength >> 4) + (((-(wordLength & 0xF)) >> 31) & 0x1);
 
             // blockCount * 16;
             int allocatedSize = blockCount << 4;
 
             // create a new sha state
-            ShaScpState state = new(allocatedSize, blockCount, dataLength);
+            ShaScpState<TWord> state = new(allocatedSize, blockCount, dataLength);
 
             // initialize buffer and add padding
             Initialize(memory, ref state);
@@ -37,56 +47,25 @@ namespace PrySec.Security.Cryptography.Hashs
             return result;
         }
 
-        private protected static DeterministicSpan<byte> HashFinalize(ref ShaScpState state, ref DeterministicSpan<uint> resultBuffer, ref UnsafeReference<uint> messageScheduleBuffer)
-        {
-            // Zero used stack memory
-            new Span<uint>(messageScheduleBuffer.Pointer, messageScheduleBuffer.Size).Fill(0x0);
+        private protected abstract DeterministicSpan<byte> HashFinalize(ref ShaScpState<TWord> state, ref DeterministicSpan<TWord> resultBuffer, ref UnsafeReference<TWord> messageScheduleBuffer);
 
-            // Fix endianness
-            for (int i = 0; i < resultBuffer.Size; i++)
-            {
-                resultBuffer.BasePointer[i] = (UInt32BE)resultBuffer.BasePointer[i];
-            }
-            return resultBuffer.CastAs<byte>();
-        }
+        private protected abstract DeterministicSpan<byte> HashCore(ref ShaScpState<TWord> state);
 
-        private protected abstract DeterministicSpan<byte> HashCore(ref ShaScpState state);
+        private protected abstract void Initialize<T>(IUnmanaged<T> memory, ref ShaScpState<TWord> state) where T : unmanaged;
+             
+        IUnmanaged<byte> IHashFunctionScp.ComputeHash<T>(IUnmanaged<T> memory) =>
+            ComputeHash(memory);
 
-        private static void Initialize<T>(IUnmanaged<T> memory, ref ShaScpState state) where T : unmanaged
-        {
-            if (memory.ByteSize > 0)
-            {
-                using IMemoryAccess<T> memoryAccess = memory.GetAccess();
-                Unsafe.CopyBlockUnaligned(state.Buffer.BasePointer, memoryAccess.Pointer, memoryAccess.ByteSize);
-            }
-
-            // append padding
-            ((byte*)state.Buffer.BasePointer)[state.DataLength] = 0x80;
-
-            // calculate length of original message in bits
-            // write message length as 64 bit big endian unsigned integer to the end of the buffer
-            *(ulong*)(state.Buffer.BasePointer + state.Buffer.Size - 2) = (UInt64BE)(((ulong)state.DataLength) << 3);
-
-            // convert 32 bit word wise back to little endian.
-            for (int i = 0; i < state.AllocatedSize; i++)
-            {
-                state.Buffer.BasePointer[i] = (UInt32BE)state.Buffer.BasePointer[i];
-            }
-        }
-
-        IUnmanaged<byte> IHashFunctionScp.ComputeHash<T>(IUnmanaged<T> memory) => 
-            ComputeHash<T>(memory);
-
-        protected readonly ref struct ShaScpState
+        protected readonly ref struct ShaScpState<T> where T : unmanaged
         {
             public readonly int AllocatedSize;
             public readonly int BlockCount;
-            public readonly DeterministicSpan<uint> Buffer;
+            public readonly DeterministicSpan<T> Buffer;
             public readonly int DataLength;
 
             public ShaScpState(int allocatedSize, int blockCount, int dataLength)
             {
-                Buffer = new DeterministicSpan<uint>(allocatedSize);
+                Buffer = new DeterministicSpan<T>(allocatedSize);
                 Buffer.ZeroMemory();
                 BlockCount = blockCount;
                 AllocatedSize = allocatedSize;

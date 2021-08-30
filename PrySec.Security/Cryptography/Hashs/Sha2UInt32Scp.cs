@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace PrySec.Security.Cryptography.Hashs
 {
-    public unsafe abstract class Sha2UInt32Scp : ShaScpBase
+    public unsafe abstract class Sha2UInt32Scp : ShaUInt32Scp
     {
         private protected const int DIGEST_DWORD_LENGTH = 8;
 
@@ -21,6 +21,8 @@ namespace PrySec.Security.Cryptography.Hashs
         /// The length of the message schedule array in 32-bit words.
         /// </summary>
         private protected const int MESSAGE_SCHEDULE_BUFFER_LENGTH = 64;
+
+        private protected const int BLOCK_SIZE = 16 * sizeof(uint);
 
         private protected readonly uint[] H;
 
@@ -39,7 +41,7 @@ namespace PrySec.Security.Cryptography.Hashs
             H = initial;
         }
 
-        private protected DeterministicSpan<uint> HashCoreHelper(ref ShaScpState state, uint* messageScheduleBuffer)
+        private protected DeterministicSpan<uint> HashCoreHelper(ref ShaScpState<uint> state, uint* messageScheduleBuffer)
         {
             // create a buffer to hold the result
             DeterministicSpan<uint> resultBuffer = new(DIGEST_DWORD_LENGTH);
@@ -57,10 +59,10 @@ namespace PrySec.Security.Cryptography.Hashs
             for (int i = 0; i < state.BlockCount; i++)
             {
                 // copy current chunk (64 bytes) into first 16 words w[0..15] of the message schedule array
-                Unsafe.CopyBlockUnaligned(messageScheduleBuffer, state.Buffer.BasePointer + (i << 4), 64);
+                Unsafe.CopyBlockUnaligned(messageScheduleBuffer, state.Buffer.BasePointer + (i << 4), BLOCK_SIZE);
 
                 // Extend the first 16 words into the remaining 48 words w[16..63] of the message schedule array:
-                for (j = 16; j < 64; j++)
+                for (j = 16; j < MESSAGE_SCHEDULE_BUFFER_LENGTH; j++)
                 {
                     uint s0In = messageScheduleBuffer[j - 15];
                     uint s1In = messageScheduleBuffer[j - 2];
@@ -86,7 +88,7 @@ namespace PrySec.Security.Cryptography.Hashs
                 h = resultBuffer.BasePointer[7];
 
                 // Compression function main loop
-                for (j = 0; j < 64; j++)
+                for (j = 0; j < MESSAGE_SCHEDULE_BUFFER_LENGTH; j++)
                 {
                     // S1 := (e rightrotate 6) xor (e rightrotate 11) xor (e rightrotate 25)
                     uint s1 = ((e >> 6) | (e << 26)) ^ ((e >> 11) | (e << 21)) ^ ((e >> 25) | (e << 7));
@@ -131,6 +133,5 @@ namespace PrySec.Security.Cryptography.Hashs
             }
             return resultBuffer;
         }
-
     }
 }
