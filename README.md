@@ -2,7 +2,9 @@
 
 Stop people from prying around in your process's memory!
 
-![dotnet-core-windows](https://github.com/frederik-hoeft/PrySec/actions/workflows/dotnet-core.yml/badge.svg)
+![dotnet-core-windows](https://github.com/frederik-hoeft/PrySec/actions/workflows/windows.yml/badge.svg)
+![dotnet-core-ubuntu](https://github.com/frederik-hoeft/PrySec/actions/workflows/ubuntu.yml/badge.svg)
+![dotnet-core-macos](https://github.com/frederik-hoeft/PrySec/actions/workflows/macos.yml/badge.svg)
 
 ---
 
