@@ -2,6 +2,8 @@
 
 Stop people from prying around in your process's memory!
 
+![dotnet-core-windows](https://github.com/frederik-hoeft/PrySec/actions/workflows/dotnet-core.yml/badge.svg)
+
 ---
 
 ## Planned key features
