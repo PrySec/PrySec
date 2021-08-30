@@ -8,8 +8,6 @@ namespace PrySec.Base.Memory
 
         T* BasePointer { get; }
 
-        IntPtr Handle { get; }
-
         int Size { get; }
 
         int ByteSize { get; }

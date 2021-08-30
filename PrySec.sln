@@ -7,7 +7,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PrySec.Base", "PrySec.Base\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PrySec.Security", "PrySec.Security\PrySec.Security.csproj", "{FCAC5F84-D1A8-4C59-8344-0ABC7C9D3C88}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Testing", "Testing\Testing.csproj", "{DFC570B3-FA45-4472-A689-B7EDE82B4DEC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Testing", "Testing\Testing.csproj", "{DFC570B3-FA45-4472-A689-B7EDE82B4DEC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PrySec.SecurityTests", "PrySec.SecurityTests\PrySec.SecurityTests.csproj", "{E9732B30-6602-4E4A-BC79-B70E9E591AEB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -27,6 +29,10 @@ Global
 		{DFC570B3-FA45-4472-A689-B7EDE82B4DEC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DFC570B3-FA45-4472-A689-B7EDE82B4DEC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DFC570B3-FA45-4472-A689-B7EDE82B4DEC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E9732B30-6602-4E4A-BC79-B70E9E591AEB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E9732B30-6602-4E4A-BC79-B70E9E591AEB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E9732B30-6602-4E4A-BC79-B70E9E591AEB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E9732B30-6602-4E4A-BC79-B70E9E591AEB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

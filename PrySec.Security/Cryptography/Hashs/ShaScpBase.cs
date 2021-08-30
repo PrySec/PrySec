@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 
 namespace PrySec.Security.Cryptography.Hashs
 {
-    public abstract unsafe class ShaScpBase
+    public abstract unsafe class ShaScpBase : IHashFunctionScp
     {
         public DeterministicSpan<byte> ComputeHash<T>(IUnmanaged<T> memory) where T : unmanaged
         {
@@ -54,8 +54,9 @@ namespace PrySec.Security.Cryptography.Hashs
 
         private static void Initialize<T>(IUnmanaged<T> memory, ref ShaScpState state) where T : unmanaged
         {
-            using (IMemoryAccess<T> memoryAccess = memory.GetAccess())
+            if (memory.ByteSize > 0)
             {
+                using IMemoryAccess<T> memoryAccess = memory.GetAccess();
                 Unsafe.CopyBlockUnaligned(state.Buffer.BasePointer, memoryAccess.Pointer, memoryAccess.ByteSize);
             }
 
@@ -72,6 +73,9 @@ namespace PrySec.Security.Cryptography.Hashs
                 state.Buffer.BasePointer[i] = (UInt32BE)state.Buffer.BasePointer[i];
             }
         }
+
+        IUnmanaged<byte> IHashFunctionScp.ComputeHash<T>(IUnmanaged<T> memory) => 
+            ComputeHash<T>(memory);
 
         protected readonly ref struct ShaScpState
         {

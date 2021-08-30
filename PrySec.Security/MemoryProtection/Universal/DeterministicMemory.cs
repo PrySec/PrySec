@@ -1,4 +1,5 @@
-﻿using PrySec.Base.Memory;
+﻿using PrySec.Base;
+using PrySec.Base.Memory;
 using PrySec.Base.Memory.MemoryManagement;
 using System;
 using System.Collections.Generic;
@@ -14,20 +15,26 @@ namespace PrySec.Security.MemoryProtection.Universal
 
         public DeterministicMemory(int count) : base(count)
         {
-            NativeHandle = Handle;
+            NativeHandle = new IntPtr(BasePointer);
         }
 
         public override void Dispose()
         {
-            if (Handle != IntPtr.Zero)
+            if (BasePointer != Pointer.NULL)
             {
                 ZeroMemory();
                 MemoryManager.Free(BasePointer);
-                Handle = IntPtr.Zero;
+                BasePointer = (T*)Pointer.NULL;
                 GC.SuppressFinalize(this);
             }
         }
 
-        public void ZeroMemory() => new Span<byte>(BasePointer, ByteSize).Fill(0x0);
+        public void ZeroMemory()
+        {
+            if (BasePointer != Pointer.NULL)
+            {
+                new Span<byte>(BasePointer, ByteSize).Fill(0x0);
+            }
+        }
     }
 }

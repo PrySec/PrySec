@@ -26,6 +26,10 @@ namespace PrySec.Base.Memory.MemoryManagement
 
         public T* Calloc<T>(int c) where T : unmanaged
         {
+            if (c == 0)
+            {
+                return (T*)Pointer.NULL;
+            }
             int allocatedSize = c * sizeof(T);
             IntPtr handle = Marshal.AllocHGlobal(allocatedSize);
             _allocations.Value!.Add(handle, (allocatedSize, GetStackTrace()));
@@ -34,13 +38,20 @@ namespace PrySec.Base.Memory.MemoryManagement
 
         public void Free(void* ptr)
         {
-            IntPtr handle = new(ptr);
-            _allocations.Value!.Remove(handle);
-            Marshal.FreeHGlobal(handle);
+            if (ptr != Pointer.NULL)
+            {
+                IntPtr handle = new(ptr);
+                _allocations.Value!.Remove(handle);
+                Marshal.FreeHGlobal(handle);
+            }
         }
 
         public void* Malloc(int cb)
         {
+            if (cb == 0)
+            {
+                return Pointer.NULL;
+            }
             IntPtr handle = Marshal.AllocHGlobal(cb);
             _allocations.Value!.Add(handle, (cb, GetStackTrace()));
             return (void*)handle;

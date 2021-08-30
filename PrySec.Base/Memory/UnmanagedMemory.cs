@@ -1,33 +1,46 @@
 ﻿using PrySec.Base.Memory.MemoryManagement;
 using System;
+using System.Drawing;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace PrySec.Base.Memory
 {
     public unsafe class UnmanagedMemory<T> : IUnmanaged<T> where T : unmanaged
     {
-        public IntPtr Handle { get; protected set; }
-
         public int Size { get; }
 
-        public int ByteSize { get; }
+        public int ByteSize { get;}
 
-        public T* BasePointer { get; private set; }
+        public T* BasePointer { get; protected set; }
 
         public UnmanagedMemory(int size)
         {
             ByteSize = size * sizeof(T);
-            BasePointer = MemoryManager.Calloc<T>(size);
-            Handle = new IntPtr(BasePointer);
             Size = size;
+            BasePointer = MemoryManager.Calloc<T>(size);
+        }
+
+        public UnmanagedMemory(T[] arr)
+        {
+            Size = arr.Length;
+            ByteSize = Size * sizeof(T);
+            BasePointer = MemoryManager.Calloc<T>(Size);
+            if (arr.Length > 0)
+            {
+                fixed (T* pArr = arr)
+                {
+                    Unsafe.CopyBlockUnaligned(BasePointer, pArr, (uint)arr.Length);
+                }
+            }
         }
 
         public virtual void Dispose()
         {
-            if (Handle != IntPtr.Zero)
+            if (BasePointer != Pointer.NULL)
             {
                 MemoryManager.Free(BasePointer);
-                Handle = IntPtr.Zero;
+                BasePointer = (T*)Pointer.NULL;
                 GC.SuppressFinalize(this);
             }
         }

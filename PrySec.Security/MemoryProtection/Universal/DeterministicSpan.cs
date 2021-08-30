@@ -1,4 +1,5 @@
-﻿using PrySec.Base.Memory;
+﻿using PrySec.Base;
+using PrySec.Base.Memory;
 using PrySec.Base.Memory.MemoryManagement;
 using System;
 using System.Collections.Generic;
@@ -10,35 +11,33 @@ namespace PrySec.Security.MemoryProtection.Universal
 {
     public unsafe readonly struct DeterministicSpan<T> : IProtectedMemory<T> where T : unmanaged
     {
-        public readonly IntPtr Handle { get; }
-
         public readonly int Size { get; }
 
         public readonly int ByteSize { get; }
 
         public readonly T* BasePointer { get; }
 
-        public readonly IntPtr NativeHandle => Handle;
+        public readonly IntPtr NativeHandle { get; }
 
         public DeterministicSpan(int size)
         {
             ByteSize = size * sizeof(T);
-            BasePointer = MemoryManager.Calloc<T>(size);
-            Handle = new IntPtr(BasePointer);
             Size = size;
+            BasePointer = MemoryManager.Calloc<T>(size);
+            NativeHandle = new IntPtr(BasePointer);
         }
 
-        private DeterministicSpan(IntPtr handle, int byteSize, T* basePointer)
+        private DeterministicSpan(int byteSize, T* basePointer)
         {
-            Handle = handle;
             ByteSize = byteSize;
-            BasePointer = basePointer;
             Size = byteSize / sizeof(T);
+            BasePointer = basePointer;
+            NativeHandle = new IntPtr(BasePointer);
         }
 
         public readonly void Dispose()
         {
-            if (Handle != IntPtr.Zero)
+            if (BasePointer != Pointer.NULL)
             {
                 ZeroMemory();
                 MemoryManager.Free(BasePointer);
@@ -57,6 +56,6 @@ namespace PrySec.Security.MemoryProtection.Universal
         public readonly void ZeroMemory() => new Span<byte>(BasePointer, ByteSize).Fill(0x0);
 
         public DeterministicSpan<TNew> CastAs<TNew>() where TNew : unmanaged =>
-            new(Handle, ByteSize, (TNew*)BasePointer);
+            new(ByteSize, (TNew*)BasePointer);
     }
 }
