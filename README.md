@@ -29,6 +29,7 @@ Stop people from prying around in your process's memory!
     - [ ] SHA-3
   - [ ] BLAKE2 Family
   - [ ] AES-256
+  - [ ] Scrypt
 - Unified high and low level interfaces for all cryptographic functions  for protected and unprotected memory alike.
 
 ### Offensive
