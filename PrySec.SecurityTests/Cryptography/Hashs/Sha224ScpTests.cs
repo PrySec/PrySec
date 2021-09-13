@@ -1,12 +1,12 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using PrySec.Security.Cryptography.Hashs;
+using PrySec.Security.Cryptography.Hashing.Sha;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace PrySec.Security.Cryptography.Hashs.Tests
+namespace PrySec.Security.Cryptography.Hashing.Tests
 {
     [TestClass()]
     public class Sha224ScpTests

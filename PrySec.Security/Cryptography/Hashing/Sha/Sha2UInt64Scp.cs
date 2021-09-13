@@ -1,15 +1,10 @@
-﻿using PrySec.Base;
-using PrySec.Base.Memory;
+﻿using PrySec.Base.Memory;
 using PrySec.Base.Primitives;
 using PrySec.Security.MemoryProtection.Universal;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace PrySec.Security.Cryptography.Hashs
+namespace PrySec.Security.Cryptography.Hashing.Sha
 {
     public abstract unsafe class Sha2UInt64Scp : ShaScpBase<ulong>
     {
@@ -54,11 +49,11 @@ namespace PrySec.Security.Cryptography.Hashs
             H = initial;
         }
 
-        private protected override void Initialize<T>(IUnmanaged<T> memory, ref ShaScpState<ulong> state)
+        private protected override void Initialize<T>(IUnmanaged<T> input, ref ShaScpState<ulong> state)
         {
-            if (memory.ByteSize > 0)
+            if (input.ByteSize > 0)
             {
-                using IMemoryAccess<T> memoryAccess = memory.GetAccess();
+                using IMemoryAccess<T> memoryAccess = input.GetAccess();
                 Unsafe.CopyBlockUnaligned(state.Buffer.BasePointer, memoryAccess.Pointer, memoryAccess.ByteSize);
             }
 
@@ -67,7 +62,7 @@ namespace PrySec.Security.Cryptography.Hashs
 
             // calculate length of original message in bits
             // write message length as 128 bit big endian unsigned integer to the end of the buffer
-            *(UInt128BE*)(state.Buffer.BasePointer + state.Buffer.Size - 2) = new UInt128BE(((ulong)state.DataLength) << 3);
+            *(UInt128BE*)(state.Buffer.BasePointer + state.Buffer.Size - 2) = new UInt128BE((ulong)state.DataLength << 3);
 
             // convert 64 bit word wise back to little endian.
             for (int i = 0; i < state.AllocatedSize; i++)
@@ -116,10 +111,10 @@ namespace PrySec.Security.Cryptography.Hashs
                     ulong s1In = messageScheduleBuffer[j - 2];
 
                     // s0 := (w[i-15] rightrotate 1) xor (w[i-15] rightrotate 8) xor (w[i-15] rightshift 7)
-                    ulong s0 = ((s0In >> 1) | (s0In << 63)) ^ ((s0In >> 8) | (s0In << 56)) ^ (s0In >> 7);
+                    ulong s0 = (s0In >> 1 | s0In << 63) ^ (s0In >> 8 | s0In << 56) ^ s0In >> 7;
 
                     // s1 := (w[i-2] rightrotate 19) xor (w[i-2] rightrotate 61) xor (w[i-2] rightshift 6)
-                    ulong s1 = ((s1In >> 19) | (s1In << 45)) ^ ((s1In >> 61) | (s1In << 3)) ^ (s1In >> 6);
+                    ulong s1 = (s1In >> 19 | s1In << 45) ^ (s1In >> 61 | s1In << 3) ^ s1In >> 6;
 
                     // w[i] := w[i-16] + s0 + w[i-7] + s1
                     messageScheduleBuffer[j] = messageScheduleBuffer[j - 16] + s0 + messageScheduleBuffer[j - 7] + s1;
@@ -139,19 +134,19 @@ namespace PrySec.Security.Cryptography.Hashs
                 for (j = 0; j < MESSAGE_SCHEDULE_BUFFER_LENGTH; j++)
                 {
                     // S1 := (e rightrotate 14) xor (e rightrotate 18) xor (e rightrotate 41))
-                    ulong s1 = ((e >> 14) | (e << 50)) ^ ((e >> 18) | (e << 46)) ^ ((e >> 41) | (e << 23));
+                    ulong s1 = (e >> 14 | e << 50) ^ (e >> 18 | e << 46) ^ (e >> 41 | e << 23);
 
                     // ch:= (e and f) xor((not e) and g)
-                    ulong ch = (e & f) ^ ((~e) & g);
+                    ulong ch = e & f ^ ~e & g;
 
                     // temp1:= h + S1 + ch + k[i] + w[i]
                     ulong temp1 = unchecked(h + s1 + ch + K[j] + messageScheduleBuffer[j]);
 
                     // S0:= (a rightrotate 28) xor (a rightrotate 34) xor (a rightrotate 39)
-                    ulong s0 = ((a >> 28) | (a << 36)) ^ ((a >> 34) | (a << 30)) ^ ((a >> 39) | (a << 25));
+                    ulong s0 = (a >> 28 | a << 36) ^ (a >> 34 | a << 30) ^ (a >> 39 | a << 25);
 
                     // maj:= (a and b) xor(a and c) xor(b and c)
-                    ulong maj = (a & b) ^ (a & c) ^ (b & c);
+                    ulong maj = a & b ^ a & c ^ b & c;
 
                     // temp2:= S0 + maj
                     ulong temp2 = s0 + maj;

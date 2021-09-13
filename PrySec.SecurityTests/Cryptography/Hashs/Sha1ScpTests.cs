@@ -1,6 +1,6 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PrySec.Base.Memory;
-using PrySec.Security.Cryptography.Hashs;
+using PrySec.Security.Cryptography.Hashing.Sha;
 using PrySec.Security.MemoryProtection.Universal;
 using System;
 using System.Collections.Generic;
@@ -9,7 +9,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace PrySec.Security.Cryptography.Hashs.Tests
+namespace PrySec.Security.Cryptography.Hashing.Tests
 {
     [TestClass()]
     public class Sha1ScpTests

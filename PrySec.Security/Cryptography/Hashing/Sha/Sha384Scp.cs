@@ -1,13 +1,8 @@
 ﻿using PrySec.Base.Memory;
 using PrySec.Security.MemoryProtection.Universal;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace PrySec.Security.Cryptography.Hashs
+namespace PrySec.Security.Cryptography.Hashing.Sha
 {
     /// <summary>
     /// SHA-384 Secure Crypto Provider
@@ -15,7 +10,7 @@ namespace PrySec.Security.Cryptography.Hashs
     public unsafe class Sha384Scp : Sha2UInt64Scp
     {
         private static readonly ulong[] H384 = new ulong[] {
-            0xcbbb9d5dc1059ed8UL, 0x629a292a367cd507UL, 0x9159015a3070dd17UL, 0x152fecd8f70e5939UL,           0x67332667ffc00b31UL, 0x8eb44a8768581511UL, 0xdb0c2e0d64f98fa7UL, 0x47b5481dbefa4fa4UL };
+            0xcbbb9d5dc1059ed8UL, 0x629a292a367cd507UL, 0x9159015a3070dd17UL, 0x152fecd8f70e5939UL, 0x67332667ffc00b31UL, 0x8eb44a8768581511UL, 0xdb0c2e0d64f98fa7UL, 0x47b5481dbefa4fa4UL };
 
         public Sha384Scp() : base(H384)
         {

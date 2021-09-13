@@ -1,10 +1,7 @@
 ﻿using PrySec.Base.Memory;
-using PrySec.Base.Primitives;
 using PrySec.Security.MemoryProtection.Universal;
-using System;
-using System.Runtime.CompilerServices;
 
-namespace PrySec.Security.Cryptography.Hashs
+namespace PrySec.Security.Cryptography.Hashing.Sha
 {
     public abstract unsafe class ShaScpBase<TWord> : IHashFunctionScp where TWord : unmanaged
     {
@@ -18,9 +15,9 @@ namespace PrySec.Security.Cryptography.Hashs
             WORD_SIZE_LOG_2 = wordSizeLog2;
         }
 
-        public DeterministicSpan<byte> ComputeHash<T>(IUnmanaged<T> memory) where T : unmanaged
+        public DeterministicSpan<byte> ComputeHash<T>(ref IUnmanaged<T> input) where T : unmanaged
         {
-            int dataLength = memory.ByteSize;
+            int dataLength = input.ByteSize;
 
             // convert string msg into blocks (array of 16 32-bit or 64-bit integers) [§5.2.1]
             // length (in words) of content length + 0x80 byte padding + appended length
@@ -28,7 +25,7 @@ namespace PrySec.Security.Cryptography.Hashs
 
             // number of 16-word blocks required to hold the data
             // is equivilant to ceil(wordLength / 16d)
-            int blockCount = (wordLength >> 4) + (((-(wordLength & 0xF)) >> 31) & 0x1);
+            int blockCount = (wordLength >> 4) + (-(wordLength & 0xF) >> 31 & 0x1);
 
             // blockCount * 16;
             int allocatedSize = blockCount << 4;
@@ -37,7 +34,7 @@ namespace PrySec.Security.Cryptography.Hashs
             ShaScpState<TWord> state = new(allocatedSize, blockCount, dataLength);
 
             // initialize buffer and add padding
-            Initialize(memory, ref state);
+            Initialize(input, ref state);
 
             // calculate the hash
             DeterministicSpan<byte> result = HashCore(ref state);
@@ -51,10 +48,10 @@ namespace PrySec.Security.Cryptography.Hashs
 
         private protected abstract DeterministicSpan<byte> HashCore(ref ShaScpState<TWord> state);
 
-        private protected abstract void Initialize<T>(IUnmanaged<T> memory, ref ShaScpState<TWord> state) where T : unmanaged;
-             
-        IUnmanaged<byte> IHashFunctionScp.ComputeHash<T>(IUnmanaged<T> memory) =>
-            ComputeHash(memory);
+        private protected abstract void Initialize<T>(IUnmanaged<T> input, ref ShaScpState<TWord> state) where T : unmanaged;
+
+        IUnmanaged<byte> IHashFunctionScp.ComputeHash<T>(ref IUnmanaged<T> input) =>
+            ComputeHash(ref input);
 
         protected readonly ref struct ShaScpState<T> where T : unmanaged
         {

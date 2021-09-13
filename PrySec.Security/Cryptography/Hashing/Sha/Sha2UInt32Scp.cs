@@ -1,12 +1,7 @@
 ﻿using PrySec.Security.MemoryProtection.Universal;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace PrySec.Security.Cryptography.Hashs
+namespace PrySec.Security.Cryptography.Hashing.Sha
 {
     public unsafe abstract class Sha2UInt32Scp : ShaUInt32Scp
     {
@@ -68,10 +63,10 @@ namespace PrySec.Security.Cryptography.Hashs
                     uint s1In = messageScheduleBuffer[j - 2];
 
                     // s0 := (w[i-15] rightrotate  7) xor (w[i-15] rightrotate 18) xor (w[i-15] rightshift  3)
-                    uint s0 = ((s0In >> 7) | (s0In << 25)) ^ ((s0In >> 18) | (s0In << 14)) ^ (s0In >> 3);
+                    uint s0 = (s0In >> 7 | s0In << 25) ^ (s0In >> 18 | s0In << 14) ^ s0In >> 3;
 
                     // s1 := (w[i- 2] rightrotate 17) xor (w[i- 2] rightrotate 19) xor (w[i- 2] rightshift 10)
-                    uint s1 = ((s1In >> 17) | (s1In << 15)) ^ ((s1In >> 19) | (s1In << 13)) ^ (s1In >> 10);
+                    uint s1 = (s1In >> 17 | s1In << 15) ^ (s1In >> 19 | s1In << 13) ^ s1In >> 10;
 
                     // w[i] := w[i-16] + s0 + w[i-7] + s1
                     messageScheduleBuffer[j] = messageScheduleBuffer[j - 16] + s0 + messageScheduleBuffer[j - 7] + s1;
@@ -91,19 +86,19 @@ namespace PrySec.Security.Cryptography.Hashs
                 for (j = 0; j < MESSAGE_SCHEDULE_BUFFER_LENGTH; j++)
                 {
                     // S1 := (e rightrotate 6) xor (e rightrotate 11) xor (e rightrotate 25)
-                    uint s1 = ((e >> 6) | (e << 26)) ^ ((e >> 11) | (e << 21)) ^ ((e >> 25) | (e << 7));
+                    uint s1 = (e >> 6 | e << 26) ^ (e >> 11 | e << 21) ^ (e >> 25 | e << 7);
 
                     // ch:= (e and f) xor((not e) and g)
-                    uint ch = (e & f) ^ ((~e) & g);
+                    uint ch = e & f ^ ~e & g;
 
                     // temp1:= h + S1 + ch + k[i] + w[i]
                     uint temp1 = unchecked(h + s1 + ch + K[j] + messageScheduleBuffer[j]);
 
                     // S0:= (a rightrotate 2) xor(a rightrotate 13) xor(a rightrotate 22)
-                    uint s0 = ((a >> 2) | (a << 30)) ^ ((a >> 13) | (a << 19)) ^ ((a >> 22) | (a << 10));
+                    uint s0 = (a >> 2 | a << 30) ^ (a >> 13 | a << 19) ^ (a >> 22 | a << 10);
 
                     // maj:= (a and b) xor(a and c) xor(b and c)
-                    uint maj = (a & b) ^ (a & c) ^ (b & c);
+                    uint maj = a & b ^ a & c ^ b & c;
 
                     // temp2:= S0 + maj
                     uint temp2 = s0 + maj;

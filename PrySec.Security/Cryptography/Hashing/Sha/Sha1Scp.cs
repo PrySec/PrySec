@@ -2,7 +2,7 @@
 using PrySec.Security.MemoryProtection.Universal;
 using System.Runtime.CompilerServices;
 
-namespace PrySec.Security.Cryptography.Hashs
+namespace PrySec.Security.Cryptography.Hashing.Sha
 {
     public unsafe class Sha1Scp : ShaUInt32Scp
     {
@@ -47,11 +47,11 @@ namespace PrySec.Security.Cryptography.Hashs
                 for (j = 16; j < MESSAGE_SCHEDULE_BUFFER_LENGTH; j++)
                 {
                     // w[i] = (w[i-3] xor w[i-8] xor w[i-14] xor w[i-16]) leftrotate 1
-                    uint tmp = (messageScheduleBuffer[j - 3]
+                    uint tmp = messageScheduleBuffer[j - 3]
                                 ^ messageScheduleBuffer[j - 8]
                                 ^ messageScheduleBuffer[j - 14]
-                                ^ messageScheduleBuffer[j - 16]);
-                    messageScheduleBuffer[j] = (tmp << 1) | (tmp >> 31);
+                                ^ messageScheduleBuffer[j - 16];
+                    messageScheduleBuffer[j] = tmp << 1 | tmp >> 31;
                 }
 
                 // Initialize hash value for this chunk
@@ -66,61 +66,61 @@ namespace PrySec.Security.Cryptography.Hashs
                 /* Round 1 */
                 for (j = 0; j < 20; j += 5)
                 {
-                    e += ((a << 5) | (a >> 27)) + (d ^ (b & (c ^ d))) + messageScheduleBuffer[j] + 0x5a827999;
-                    b = (b << 30) | (b >> 2);
-                    d += ((e << 5) | (e >> 27)) + (c ^ (a & (b ^ c))) + messageScheduleBuffer[j + 1] + 0x5a827999;
-                    a = (a << 30) | (a >> 2);
-                    c += ((d << 5) | (d >> 27)) + (b ^ (e & (a ^ b))) + messageScheduleBuffer[j + 2] + 0x5a827999;
-                    e = (e << 30) | (e >> 2);
-                    b += ((c << 5) | (c >> 27)) + (a ^ (d & (e ^ a))) + messageScheduleBuffer[j + 3] + 0x5a827999;
-                    d = (d << 30) | (d >> 2);
-                    a += ((b << 5) | (b >> 27)) + (e ^ (c & (d ^ e))) + messageScheduleBuffer[j + 4] + 0x5a827999;
-                    c = (c << 30) | (c >> 2);
+                    e += (a << 5 | a >> 27) + (d ^ b & (c ^ d)) + messageScheduleBuffer[j] + 0x5a827999;
+                    b = b << 30 | b >> 2;
+                    d += (e << 5 | e >> 27) + (c ^ a & (b ^ c)) + messageScheduleBuffer[j + 1] + 0x5a827999;
+                    a = a << 30 | a >> 2;
+                    c += (d << 5 | d >> 27) + (b ^ e & (a ^ b)) + messageScheduleBuffer[j + 2] + 0x5a827999;
+                    e = e << 30 | e >> 2;
+                    b += (c << 5 | c >> 27) + (a ^ d & (e ^ a)) + messageScheduleBuffer[j + 3] + 0x5a827999;
+                    d = d << 30 | d >> 2;
+                    a += (b << 5 | b >> 27) + (e ^ c & (d ^ e)) + messageScheduleBuffer[j + 4] + 0x5a827999;
+                    c = c << 30 | c >> 2;
                 }
 
                 /* Round 2 */
                 for (; j < 40; j += 5)
                 {
-                    e += ((a << 5) | (a >> 27)) + (b ^ c ^ d) + messageScheduleBuffer[j] + 0x6ed9eba1;
-                    b = (b << 30) | (b >> 2);
-                    d += ((e << 5) | (e >> 27)) + (a ^ b ^ c) + messageScheduleBuffer[j + 1] + 0x6ed9eba1;
-                    a = (a << 30) | (a >> 2);
-                    c += ((d << 5) | (d >> 27)) + (e ^ a ^ b) + messageScheduleBuffer[j + 2] + 0x6ed9eba1;
-                    e = (e << 30) | (e >> 2);
-                    b += ((c << 5) | (c >> 27)) + (d ^ e ^ a) + messageScheduleBuffer[j + 3] + 0x6ed9eba1;
-                    d = (d << 30) | (d >> 2);
-                    a += ((b << 5) | (b >> 27)) + (c ^ d ^ e) + messageScheduleBuffer[j + 4] + 0x6ed9eba1;
-                    c = (c << 30) | (c >> 2);
+                    e += (a << 5 | a >> 27) + (b ^ c ^ d) + messageScheduleBuffer[j] + 0x6ed9eba1;
+                    b = b << 30 | b >> 2;
+                    d += (e << 5 | e >> 27) + (a ^ b ^ c) + messageScheduleBuffer[j + 1] + 0x6ed9eba1;
+                    a = a << 30 | a >> 2;
+                    c += (d << 5 | d >> 27) + (e ^ a ^ b) + messageScheduleBuffer[j + 2] + 0x6ed9eba1;
+                    e = e << 30 | e >> 2;
+                    b += (c << 5 | c >> 27) + (d ^ e ^ a) + messageScheduleBuffer[j + 3] + 0x6ed9eba1;
+                    d = d << 30 | d >> 2;
+                    a += (b << 5 | b >> 27) + (c ^ d ^ e) + messageScheduleBuffer[j + 4] + 0x6ed9eba1;
+                    c = c << 30 | c >> 2;
                 }
 
                 /* Round 3 */
                 for (; j < 60; j += 5)
                 {
-                    e += ((a << 5) | (a >> 27)) + ((b & c) | (d & (b | c))) + messageScheduleBuffer[j] + 0x8f1bbcdc;
-                    b = (b << 30) | (b >> 2);
-                    d += ((e << 5) | (e >> 27)) + ((a & b) | (c & (a | b))) + messageScheduleBuffer[j + 1] + 0x8f1bbcdc;
-                    a = (a << 30) | (a >> 2);
-                    c += ((d << 5) | (d >> 27)) + ((e & a) | (b & (e | a))) + messageScheduleBuffer[j + 2] + 0x8f1bbcdc;
-                    e = (e << 30) | (e >> 2);
-                    b += ((c << 5) | (c >> 27)) + ((d & e) | (a & (d | e))) + messageScheduleBuffer[j + 3] + 0x8f1bbcdc;
-                    d = (d << 30) | (d >> 2);
-                    a += ((b << 5) | (b >> 27)) + ((c & d) | (e & (c | d))) + messageScheduleBuffer[j + 4] + 0x8f1bbcdc;
-                    c = (c << 30) | (c >> 2);
+                    e += (a << 5 | a >> 27) + (b & c | d & (b | c)) + messageScheduleBuffer[j] + 0x8f1bbcdc;
+                    b = b << 30 | b >> 2;
+                    d += (e << 5 | e >> 27) + (a & b | c & (a | b)) + messageScheduleBuffer[j + 1] + 0x8f1bbcdc;
+                    a = a << 30 | a >> 2;
+                    c += (d << 5 | d >> 27) + (e & a | b & (e | a)) + messageScheduleBuffer[j + 2] + 0x8f1bbcdc;
+                    e = e << 30 | e >> 2;
+                    b += (c << 5 | c >> 27) + (d & e | a & (d | e)) + messageScheduleBuffer[j + 3] + 0x8f1bbcdc;
+                    d = d << 30 | d >> 2;
+                    a += (b << 5 | b >> 27) + (c & d | e & (c | d)) + messageScheduleBuffer[j + 4] + 0x8f1bbcdc;
+                    c = c << 30 | c >> 2;
                 }
 
                 /* Round 4 */
                 for (; j < 80; j += 5)
                 {
-                    e += ((a << 5) | (a >> 27)) + (b ^ c ^ d) + messageScheduleBuffer[j] + 0xca62c1d6;
-                    b = (b << 30) | (b >> 2);
-                    d += ((e << 5) | (e >> 27)) + (a ^ b ^ c) + messageScheduleBuffer[j + 1] + 0xca62c1d6;
-                    a = (a << 30) | (a >> 2);
-                    c += ((d << 5) | (d >> 27)) + (e ^ a ^ b) + messageScheduleBuffer[j + 2] + 0xca62c1d6;
-                    e = (e << 30) | (e >> 2);
-                    b += ((c << 5) | (c >> 27)) + (d ^ e ^ a) + messageScheduleBuffer[j + 3] + 0xca62c1d6;
-                    d = (d << 30) | (d >> 2);
-                    a += ((b << 5) | (b >> 27)) + (c ^ d ^ e) + messageScheduleBuffer[j + 4] + 0xca62c1d6;
-                    c = (c << 30) | (c >> 2);
+                    e += (a << 5 | a >> 27) + (b ^ c ^ d) + messageScheduleBuffer[j] + 0xca62c1d6;
+                    b = b << 30 | b >> 2;
+                    d += (e << 5 | e >> 27) + (a ^ b ^ c) + messageScheduleBuffer[j + 1] + 0xca62c1d6;
+                    a = a << 30 | a >> 2;
+                    c += (d << 5 | d >> 27) + (e ^ a ^ b) + messageScheduleBuffer[j + 2] + 0xca62c1d6;
+                    e = e << 30 | e >> 2;
+                    b += (c << 5 | c >> 27) + (d ^ e ^ a) + messageScheduleBuffer[j + 3] + 0xca62c1d6;
+                    d = d << 30 | d >> 2;
+                    a += (b << 5 | b >> 27) + (c ^ d ^ e) + messageScheduleBuffer[j + 4] + 0xca62c1d6;
+                    c = c << 30 | c >> 2;
                 }
 
                 #endregion Main compression loop

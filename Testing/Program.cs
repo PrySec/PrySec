@@ -2,10 +2,11 @@
 
 using PrySec.Base.Memory;
 using PrySec.Base.Primitives.Converters;
-using PrySec.Security.Cryptography.Hashs;
+using PrySec.Security.Cryptography.Hashing.Sha;
 using PrySec.Security.MemoryProtection.Universal;
 using System;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 using System.Security.Cryptography;
@@ -22,7 +23,7 @@ unsafe
     {
 #if custom
         int rawUtf8Length = Encoding.UTF8.GetByteCount(pStr, strLength);
-        using UnmangedSpan<byte> buffer = new(rawUtf8Length);
+        IUnmanaged<byte> buffer = new UnmanagedSpan<byte>(rawUtf8Length);
         byte* utf8Bytes = (byte*)buffer.BasePointer;
         Encoding.UTF8.GetBytes(pStr, strLength, utf8Bytes, rawUtf8Length);
         Sha256Scp sha = new();
@@ -34,7 +35,7 @@ unsafe
         for (int i = 0; i < WARMUP; i++)
         {
 #if custom
-            using DeterministicSpan<byte> result = sha.ComputeHash(buffer);
+            using DeterministicSpan<byte> result = sha.ComputeHash(ref buffer);
             //Console.WriteLine(Convert.ToHexString(result.AsSpan()));
 #else
             sha.ComputeHash(buffer);
@@ -46,7 +47,7 @@ unsafe
         for (int i = 0; i < ITERATIONS; i++)
         {
 #if custom
-            using DeterministicSpan<byte> result = sha.ComputeHash(buffer);
+            using DeterministicSpan<byte> result = sha.ComputeHash(ref buffer);
 #else
             sha.ComputeHash(buffer);
 #endif
@@ -55,10 +56,23 @@ unsafe
         Console.WriteLine(stopwatch.Elapsed);
         Console.WriteLine($"That's {stopwatch.ElapsedMilliseconds / (double)ITERATIONS} ms / hash");
         Console.WriteLine($"Or {(double)ITERATIONS / stopwatch.ElapsedMilliseconds * 1000} hashes / s");
+#if custom
+        buffer.Free();
+#endif
     }
 }
 
 /*
+
+Span.Fill:
+
+00:00:17.3225971
+That's 6.9288E-05 ms / hash
+Or 14432513.566562753 hashes / s
+
+
+=======================================
+
 Timing SHA2:
 
 00:00:18.6424317
@@ -106,11 +120,3 @@ BUILT-IN Timing:
 That's 0.00023892 ms / hash
 Or 4185501.423070484 hashes / s
  */
-
-static unsafe void PrintBuffer(uint* buffer)
-{
-    for (int i = 0; i < 4; i++)
-    {
-        Console.WriteLine(buffer[i].ToString("X8"));
-    }
-}

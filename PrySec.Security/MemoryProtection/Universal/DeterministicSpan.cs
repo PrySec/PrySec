@@ -2,10 +2,6 @@
 using PrySec.Base.Memory;
 using PrySec.Base.Memory.MemoryManagement;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace PrySec.Security.MemoryProtection.Universal
 {

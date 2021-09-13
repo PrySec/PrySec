@@ -3,7 +3,7 @@ using System;
 
 namespace PrySec.Base.Memory
 {
-    public unsafe readonly struct UnmangedSpan<T> : IUnmanaged<T> where T : unmanaged
+    public unsafe readonly struct UnmanagedSpan<T> : IUnmanaged<T> where T : unmanaged
     {
         public readonly IntPtr Handle { get; }
 
@@ -13,7 +13,7 @@ namespace PrySec.Base.Memory
 
         public readonly T* BasePointer { get; }
 
-        public UnmangedSpan(int size)
+        public UnmanagedSpan(int size)
         {
             ByteSize = size * sizeof(T);
             BasePointer = MemoryManager.Calloc<T>(size);

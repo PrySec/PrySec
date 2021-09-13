@@ -1,13 +1,8 @@
 ﻿using PrySec.Base.Memory;
 using PrySec.Security.MemoryProtection.Universal;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace PrySec.Security.Cryptography.Hashs
+namespace PrySec.Security.Cryptography.Hashing.Sha
 {
     /// <summary>
     /// SHA-256 Secure Crypto Provider

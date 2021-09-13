@@ -1,15 +1,10 @@
-﻿using PrySec.Base;
-using PrySec.Base.Memory;
+﻿using PrySec.Base.Memory;
 using PrySec.Base.Primitives;
 using PrySec.Security.MemoryProtection.Universal;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace PrySec.Security.Cryptography.Hashs
+namespace PrySec.Security.Cryptography.Hashing.Sha
 {
     public abstract unsafe class ShaUInt32Scp : ShaScpBase<uint>
     {
@@ -19,11 +14,11 @@ namespace PrySec.Security.Cryptography.Hashs
         {
         }
 
-        private protected override void Initialize<T>(IUnmanaged<T> memory, ref ShaScpState<uint> state)
+        private protected override void Initialize<T>(IUnmanaged<T> input, ref ShaScpState<uint> state)
         {
-            if (memory.ByteSize > 0)
+            if (input.ByteSize > 0)
             {
-                using IMemoryAccess<T> memoryAccess = memory.GetAccess();
+                using IMemoryAccess<T> memoryAccess = input.GetAccess();
                 Unsafe.CopyBlockUnaligned(state.Buffer.BasePointer, memoryAccess.Pointer, memoryAccess.ByteSize);
             }
 
@@ -32,7 +27,7 @@ namespace PrySec.Security.Cryptography.Hashs
 
             // calculate length of original message in bits
             // write message length as 64 bit big endian unsigned integer to the end of the buffer
-            *(ulong*)(state.Buffer.BasePointer + state.Buffer.Size - 2) = (UInt64BE)(((ulong)state.DataLength) << 3);
+            *(ulong*)(state.Buffer.BasePointer + state.Buffer.Size - 2) = (UInt64BE)((ulong)state.DataLength << 3);
 
             // convert 32 bit word wise back to little endian.
             for (int i = 0; i < state.AllocatedSize; i++)
