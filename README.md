@@ -5,6 +5,7 @@ Stop people from prying around in your process's memory!
 ![dotnet-core-windows](https://github.com/frederik-hoeft/PrySec/actions/workflows/windows.yml/badge.svg)
 ![dotnet-core-ubuntu](https://github.com/frederik-hoeft/PrySec/actions/workflows/ubuntu.yml/badge.svg)
 ![dotnet-core-macos](https://github.com/frederik-hoeft/PrySec/actions/workflows/macos.yml/badge.svg)
+[![CodeFactor](https://www.codefactor.io/repository/github/frederik-hoeft/prysec/badge?s=adaf32ed48d673d2c1f5aa80e15614d2f0b16278)](https://www.codefactor.io/repository/github/frederik-hoeft/prysec)
 
 ---
 
