@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 
 namespace PrySec.Security.Cryptography.Hashing.Blake2
 {
+#if false
     public unsafe class Blake2b : IHashFunctionScp
     {
         private static readonly ulong[] H = new ulong[] {
@@ -91,4 +92,5 @@ namespace PrySec.Security.Cryptography.Hashing.Blake2
             }
         }
     }
+#endif
 }
