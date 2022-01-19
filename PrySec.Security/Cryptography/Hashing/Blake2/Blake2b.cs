@@ -8,11 +8,13 @@ namespace PrySec.Security.Cryptography.Hashing.Blake2;
 
 public unsafe partial class Blake2b : IHashFunctionScp
 {
-    private static readonly ulong[] H = new ulong[] {
+    private static readonly ulong[] H = new ulong[] 
+    {
         0x6a09e667f3bcc908UL, 0xbb67ae8584caa73bUL,
         0x3c6ef372fe94f82bUL, 0xa54ff53a5f1d36f1UL,
         0x510e527fade682d1UL, 0x9b05688c2b3e6c1fUL,
-        0x1f83d9abfb41bd6bUL, 0x5be0cd19137e2179UL };
+        0x1f83d9abfb41bd6bUL, 0x5be0cd19137e2179UL 
+    };
 
     public TOutputMemory ComputeHash<TData, TInputMemory, TOutputMemory>(ref TInputMemory input, Size32_T digestLength)
         where TData : unmanaged
@@ -67,6 +69,7 @@ public unsafe partial class Blake2b : IHashFunctionScp
         {
             Unsafe.CopyBlockUnaligned(state.Hash, pInitialHash, 64);
         }
+
         // Mix key size (cbKeyLen) and desired hash length (cbHashLen) into h0
         *state.Hash ^= 0x01010000u | (state.KeyLength << 8) | state.DigestLength;
     }
@@ -115,17 +118,6 @@ public unsafe partial class Blake2b : IHashFunctionScp
             Hash = hash;
             KeyLength = keyLength;
             DigestLength = digestLength;
-        }
-    }
-
-    private readonly unsafe struct Test
-    {
-        public readonly void* p;
-
-        public Test(int size)
-        {
-            byte* b = stackalloc byte[size];
-            p = b;
         }
     }
 }
