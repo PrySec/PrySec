@@ -1,91 +1,126 @@
-﻿#define custom
+﻿//#define custom
 
-using PrySec.Base.Memory;
-using PrySec.Base.Primitives.Converters;
-using PrySec.Security.Cryptography.Hashing.Sha;
-using PrySec.Security.MemoryProtection.Universal;
+using PrySec.Core.Memory.MemoryManagement;
+using PrySec.Core.Memory.MemoryManagement.Implementations;
+using PrySec.Core.Memory.MemoryManagement.Implementations.AllocationTracking;
 using System;
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
-using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
-using System.Security.Cryptography;
-using System.Text;
+using Testing;
 
-const int WARMUP = 100_000;
-const int ITERATIONS = 25_000_000;
+Test.Asdf(0);
+
+return;
+
+const uint WARMUP = 10_000_000;
+const uint ITERATIONS = 2_500_000_000;
 
 unsafe
 {
-    const string str = "abc";
+    string str = new('A', 10000);
     int strLength = str.Length;
     fixed (char* pStr = str)
     {
-#if custom
-        int rawUtf8Length = Encoding.UTF8.GetByteCount(pStr, strLength);
-        IUnmanaged<byte> buffer = new UnmanagedSpan<byte>(rawUtf8Length);
-        byte* utf8Bytes = (byte*)buffer.BasePointer;
-        Encoding.UTF8.GetBytes(pStr, strLength, utf8Bytes, rawUtf8Length);
-        Sha256Scp sha = new();
-#else
-        SHA256CryptoServiceProvider sha = new();
-        byte[] buffer = Encoding.UTF8.GetBytes(str);
-#endif
-        Console.WriteLine("Warmup...");
-        for (int i = 0; i < WARMUP; i++)
+        Console.WriteLine($"Calling Test Methods {ITERATIONS} times with additional warmup of {WARMUP} ...");
+        Console.WriteLine();
+        // setup
+
+        // warmup
+        for (uint i = 0; i < WARMUP; i++)
         {
-#if custom
-            using DeterministicSpan<byte> result = sha.ComputeHash(ref buffer);
-            //Console.WriteLine(Convert.ToHexString(result.AsSpan()));
-#else
-            sha.ComputeHash(buffer);
-#endif
+            _ = InstanceTest.Test(i);
         }
         Stopwatch stopwatch = new();
-        Console.WriteLine("Measuring...");
         stopwatch.Start();
-        for (int i = 0; i < ITERATIONS; i++)
+        for (uint i = 0; i < ITERATIONS; i++)
         {
-#if custom
-            using DeterministicSpan<byte> result = sha.ComputeHash(ref buffer);
-#else
-            sha.ComputeHash(buffer);
-#endif
+            _ = InstanceTest.Test(i);
         }
         stopwatch.Stop();
+        Console.WriteLine("private static instance call forward:");
         Console.WriteLine(stopwatch.Elapsed);
-        Console.WriteLine($"That's {stopwatch.ElapsedMilliseconds / (double)ITERATIONS} ms / hash");
-        Console.WriteLine($"Or {(double)ITERATIONS / stopwatch.ElapsedMilliseconds * 1000} hashes / s");
-#if custom
-        buffer.Free();
-#endif
+        Console.WriteLine($"That's {stopwatch.ElapsedMilliseconds / (double)ITERATIONS} ms / it");
+        Console.WriteLine($"Or {(double)ITERATIONS / stopwatch.ElapsedMilliseconds * 1000} it / s");
+        Console.WriteLine();
+
+        // setup
+        DelegateTest.Use<DelegateTestImpl>();
+        // warmup
+        for (uint i = 0; i < WARMUP; i++)
+        {
+            _ = DelegateTest.Test(i);
+        }
+        stopwatch = new();
+        stopwatch.Start();
+        for (uint i = 0; i < ITERATIONS; i++)
+        {
+            _ = DelegateTest.Test(i);
+        }
+        stopwatch.Stop();
+        Console.WriteLine("delegate call:");
+        Console.WriteLine(stopwatch.Elapsed);
+        Console.WriteLine($"That's {stopwatch.ElapsedMilliseconds / (double)ITERATIONS} ms / it");
+        Console.WriteLine($"Or {(double)ITERATIONS / stopwatch.ElapsedMilliseconds * 1000} it / s");
+        Console.WriteLine();
+
+        // setup
+        DelegateTestExpressionTree.Use<DelegateTestImpl>();
+        // warmup
+        for (uint i = 0; i < WARMUP; i++)
+        {
+            _ = DelegateTestExpressionTree.Test(i);
+        }
+        stopwatch = new();
+        stopwatch.Start();
+        for (uint i = 0; i < ITERATIONS; i++)
+        {
+            _ = DelegateTestExpressionTree.Test(i);
+        }
+        stopwatch.Stop();
+        Console.WriteLine("delegate call via expression tree:");
+        Console.WriteLine(stopwatch.Elapsed);
+        Console.WriteLine($"That's {stopwatch.ElapsedMilliseconds / (double)ITERATIONS} ms / it");
+        Console.WriteLine($"Or {(double)ITERATIONS / stopwatch.ElapsedMilliseconds * 1000} it / s");
+        Console.WriteLine();
+
+        // setup
+        FuctionPointerTestWithProperty.Use<DelegateTestImpl>();
+        // warmup
+        for (uint i = 0; i < WARMUP; i++)
+        {
+            _ = FuctionPointerTestWithProperty.Test(i);
+        }
+        stopwatch = new();
+        stopwatch.Start();
+        for (uint i = 0; i < ITERATIONS; i++)
+        {
+            _ = FuctionPointerTestWithProperty.Test(i);
+        }
+        stopwatch.Stop();
+        Console.WriteLine("static function pointer call:");
+        Console.WriteLine(stopwatch.Elapsed);
+        Console.WriteLine($"That's {stopwatch.ElapsedMilliseconds / (double)ITERATIONS} ms / it");
+        Console.WriteLine($"Or {(double)ITERATIONS / stopwatch.ElapsedMilliseconds * 1000} it / s");
+        Console.WriteLine();
     }
 }
 
 /*
 
-Span.Fill:
-
-00:00:17.3225971
-That's 6.9288E-05 ms / hash
-Or 14432513.566562753 hashes / s
-
-
 =======================================
 
 Timing SHA2:
 
-00:00:18.6424317
-That's 0.00074568 ms / hash
-Or 1341057.826413475 hashes / s
+00:03:47.6726719
+That's 0.0910688 ms / hash
+Or 10980.709090270213 hashes / s
 
 ------------------------------------------------
 
 BUILT-IN Timing:
 
-00:00:23.6836672
-That's 0.00094732 ms / hash
-Or 1055609.5089304566 hashes / s
+00:02:04.2549446
+That's 0.0497016 ms / hash
+Or 20120.076617251758 hashes / s
 
 ------------------------------------------------
 
@@ -95,10 +130,9 @@ pmdbs2XNative Timing:
 That's 0.00141088 ms / hash
 Or 708777.500567022 hashes / s
 
-
 ======================================
 
-SHA-1 
+SHA-1
 
 unoptimized custom:
 

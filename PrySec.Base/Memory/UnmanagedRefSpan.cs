@@ -1,7 +1,7 @@
-﻿using PrySec.Base.Memory.MemoryManagement;
+﻿using PrySec.Core.Memory.MemoryManagement;
 using System;
 
-namespace PrySec.Base.Memory
+namespace PrySec.Core.Memory
 {
     public unsafe readonly ref struct UnmanagedRefSpan<T> where T : unmanaged
     {

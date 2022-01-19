@@ -1,22 +1,23 @@
-﻿namespace PrySec.Base.Memory
+﻿using PrySec.Core.NativeTypes;
+
+namespace PrySec.Core.Memory;
+
+public unsafe readonly struct MemoryAccess<T> : IMemoryAccess<T> where T : unmanaged
 {
-    public unsafe readonly struct MemoryAccess<T> : IMemoryAccess<T> where T : unmanaged
+    public MemoryAccess(T* ptr, Size32_T count)
     {
-        public MemoryAccess(T* ptr, int size)
-        {
-            Pointer = ptr;
-            Size = size;
-            ByteSize = size * sizeof(T);
-        }
+        Pointer = ptr;
+        Count = count;
+        ByteSize = count * sizeof(T);
+    }
 
-        public readonly T* Pointer { get; }
+    public readonly T* Pointer { get; }
 
-        public readonly int Size { get; }
+    public readonly int Count { get; }
 
-        public Size_T ByteSize { get; }
+    public Size32_T ByteSize { get; }
 
-        public readonly void Dispose()
-        {
-        }
+    public readonly void Dispose()
+    {
     }
 }

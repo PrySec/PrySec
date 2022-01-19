@@ -1,57 +1,88 @@
-﻿using PrySec.Base;
-using PrySec.Base.Memory;
-using PrySec.Base.Memory.MemoryManagement;
+﻿using PrySec.Core;
+using PrySec.Core.Memory;
+using PrySec.Core.Memory.MemoryManagement;
+using PrySec.Core.NativeTypes;
+using PrySec.Core.Primitives;
 using System;
+using System.Runtime.CompilerServices;
 
-namespace PrySec.Security.MemoryProtection.Universal
+namespace PrySec.Security.MemoryProtection.Universal;
+
+public unsafe readonly struct DeterministicSpan<T> : IProtectedMemoryFactory<DeterministicSpan<T>, T> where T : unmanaged
 {
-    public unsafe readonly struct DeterministicSpan<T> : IProtectedMemory<T> where T : unmanaged
+    public readonly int Count { get; }
+
+    public readonly Size_T ByteSize { get; }
+
+    public readonly T* BasePointer { get; }
+
+    public readonly IntPtr NativeHandle { get; }
+
+    public DeterministicSpan<T> this[Range range]
     {
-        public readonly int Size { get; }
-
-        public readonly Size_T ByteSize { get; }
-
-        public readonly T* BasePointer { get; }
-
-        public readonly IntPtr NativeHandle { get; }
-
-        public DeterministicSpan(int size)
+        get
         {
-            ByteSize = size * sizeof(T);
-            Size = size;
-            BasePointer = MemoryManager.Calloc<T>(size);
-            NativeHandle = new IntPtr(BasePointer);
-        }
-
-        private DeterministicSpan(int byteSize, T* basePointer)
-        {
-            ByteSize = byteSize;
-            Size = byteSize / sizeof(T);
-            BasePointer = basePointer;
-            NativeHandle = new IntPtr(BasePointer);
-        }
-
-        public readonly void Dispose()
-        {
-            if (BasePointer != Pointer.NULL)
+            int size = range.End.Value - range.Start.Value;
+            if (size <= 0)
             {
-                ZeroMemory();
-                MemoryManager.Free(BasePointer);
-                GC.SuppressFinalize(this);
+                throw new ArgumentOutOfRangeException(nameof(range));
             }
+            DeterministicSpan<T> deterministicSpan = new(size);
+            Unsafe.CopyBlockUnaligned(deterministicSpan.BasePointer, BasePointer + range.Start.Value, (uint)size);
+            return deterministicSpan;
         }
+    }
 
-        public Span<T> AsSpan() => new(BasePointer, Size);
+    public DeterministicSpan(Size_T count)
+    {
+        ByteSize = count * sizeof(T);
+        Count = count;
+        BasePointer = (T*)MemoryManager.Calloc(count, sizeof(T));
+        NativeHandle = new IntPtr(BasePointer);
+    }
 
-        public void Free() => Dispose();
+    private DeterministicSpan(int byteSize, T* basePointer)
+    {
+        ByteSize = byteSize;
+        Count = byteSize / sizeof(T);
+        BasePointer = basePointer;
+        NativeHandle = new IntPtr(BasePointer);
+    }
 
-        public readonly MemoryAccess<T> GetAccess() => new(BasePointer, Size);
+    public readonly void Dispose()
+    {
+        if (BasePointer != null)
+        {
+            ZeroMemory();
+            MemoryManager.Free(BasePointer);
+            GC.SuppressFinalize(this);
+        }
+    }
 
-        readonly IMemoryAccess<T> IUnmanaged<T>.GetAccess() => GetAccess();
+    public Span<T> AsSpan() => new(BasePointer, Count);
 
-        public readonly void ZeroMemory() => new Span<byte>(BasePointer, ByteSize).Fill(0x0);
+    public void Free() => Dispose();
 
-        public DeterministicSpan<TNew> CastAs<TNew>() where TNew : unmanaged =>
-            new(ByteSize, (TNew*)BasePointer);
+    public readonly MemoryAccess<T> GetAccess() => new(BasePointer, Count);
+
+    readonly IMemoryAccess<T> IUnmanaged<T>.GetAccess() => GetAccess();
+
+    public readonly void ZeroMemory() => new Span<byte>(BasePointer, ByteSize).Fill(0x0);
+
+    public DeterministicSpan<TNew> As<TNew>() where TNew : unmanaged =>
+        new(ByteSize, (TNew*)BasePointer);
+
+    public static DeterministicSpan<T> Allocate(Size_T count) => new(count);
+
+    public readonly MemoryAccess<TAs> GetAccess<TAs>() where TAs : unmanaged => new((TAs*)BasePointer, ByteSize / sizeof(TAs));
+
+    readonly IMemoryAccess<TAs> IUnmanaged<T>.GetAccess<TAs>() => GetAccess<TAs>();
+
+    public static DeterministicSpan<T> CreateFrom(ReadOnlySpan<T> data)
+    {
+        DeterministicSpan<T> span = Allocate(data.Length);
+        Span<T> destination = new(span.BasePointer, span.Count);
+        data.CopyTo(destination);
+        return span;
     }
 }

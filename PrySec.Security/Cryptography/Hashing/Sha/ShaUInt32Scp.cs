@@ -1,52 +1,50 @@
-﻿using PrySec.Base.Memory;
-using PrySec.Base.Primitives;
-using PrySec.Security.MemoryProtection.Universal;
+﻿using PrySec.Core.Memory;
+using PrySec.Core.NativeTypes;
+using PrySec.Core.Primitives;
 using System;
 using System.Runtime.CompilerServices;
 
-namespace PrySec.Security.Cryptography.Hashing.Sha
+namespace PrySec.Security.Cryptography.Hashing.Sha;
+
+public abstract unsafe class ShaUInt32Scp : ShaScpBase<uint>
 {
-    public abstract unsafe class ShaUInt32Scp : ShaScpBase<uint>
+    protected ShaUInt32Scp()
     {
-        private const int WORD_SIZE_LOG_2 = 2;
+    }
 
-        private protected ShaUInt32Scp() : base(WORD_SIZE_LOG_2)
+    private protected override void Initialize<T>(IUnmanaged<T> input, ref ShaScpState state)
+    {
+        if (input.ByteSize > 0)
         {
+            using IMemoryAccess<T> memoryAccess = input.GetAccess();
+            Unsafe.CopyBlockUnaligned(state.Buffer.BasePointer, memoryAccess.Pointer, memoryAccess.ByteSize);
         }
 
-        private protected override void Initialize<T>(IUnmanaged<T> input, ref ShaScpState<uint> state)
+        // append padding
+        ((byte*)state.Buffer.BasePointer)[state.DataLength] = 0x80;
+
+        // calculate length of original message in bits
+        // write message length as 64 bit big endian unsigned integer to the end of the buffer
+        *(ulong*)(state.Buffer.BasePointer + state.Buffer.Count - 2) = (UInt64BE_T)((ulong)state.DataLength << 3);
+
+        // convert 32 bit word wise back to little endian.
+        for (int i = 0; i < state.AllocatedSize; i++)
         {
-            if (input.ByteSize > 0)
-            {
-                using IMemoryAccess<T> memoryAccess = input.GetAccess();
-                Unsafe.CopyBlockUnaligned(state.Buffer.BasePointer, memoryAccess.Pointer, memoryAccess.ByteSize);
-            }
-
-            // append padding
-            ((byte*)state.Buffer.BasePointer)[state.DataLength] = 0x80;
-
-            // calculate length of original message in bits
-            // write message length as 64 bit big endian unsigned integer to the end of the buffer
-            *(ulong*)(state.Buffer.BasePointer + state.Buffer.Size - 2) = (UInt64BE)((ulong)state.DataLength << 3);
-
-            // convert 32 bit word wise back to little endian.
-            for (int i = 0; i < state.AllocatedSize; i++)
-            {
-                state.Buffer.BasePointer[i] = (UInt32BE)state.Buffer.BasePointer[i];
-            }
+            state.Buffer.BasePointer[i] = (UInt32BE_T)state.Buffer.BasePointer[i];
         }
+    }
 
-        private protected override DeterministicSpan<byte> HashFinalize(ref ShaScpState<uint> state, ref DeterministicSpan<uint> resultBuffer, ref UnsafeReference<uint> messageScheduleBuffer)
+    private protected override void HashFinalize<TOutputMemory>(ref ShaScpState state, ref TOutputMemory resultBuffer, ref UnsafeReference<uint> messageScheduleBuffer)
+    {
+        // Zero used stack memory
+        messageScheduleBuffer.SetZero();
+
+        using IMemoryAccess<uint> access = resultBuffer.GetAccess<uint>();
+
+        // Fix endianness
+        for (int i = 0; i < access.Count; i++)
         {
-            // Zero used stack memory
-            new Span<uint>(messageScheduleBuffer.Pointer, messageScheduleBuffer.Size).Fill(0x0);
-
-            // Fix endianness
-            for (int i = 0; i < resultBuffer.Size; i++)
-            {
-                resultBuffer.BasePointer[i] = (UInt32BE)resultBuffer.BasePointer[i];
-            }
-            return resultBuffer.CastAs<byte>();
+            BinaryUtils.WriteUInt32BigEndian(access.Pointer + i, access.Pointer[i]);
         }
     }
 }

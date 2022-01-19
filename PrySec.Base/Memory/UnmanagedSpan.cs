@@ -1,39 +1,70 @@
-﻿using PrySec.Base.Memory.MemoryManagement;
+﻿using PrySec.Core.Memory.MemoryManagement;
+using PrySec.Core.NativeTypes;
+using PrySec.Core.Primitives;
 using System;
+using System.Runtime.CompilerServices;
 
-namespace PrySec.Base.Memory
+namespace PrySec.Core.Memory;
+
+public unsafe readonly struct UnmanagedSpan<T> : IUnmanaged<UnmanagedSpan<T>, T> where T : unmanaged
 {
-    public unsafe readonly struct UnmanagedSpan<T> : IUnmanaged<T> where T : unmanaged
+    public readonly IntPtr Handle { get; }
+
+    public readonly int Count { get; }
+
+    public readonly Size_T ByteSize { get; }
+
+    public readonly T* BasePointer { get; }
+
+    public UnmanagedSpan<T> this[Range range]
     {
-        public readonly IntPtr Handle { get; }
-
-        public readonly int Size { get; }
-
-        public readonly Size_T ByteSize { get; }
-
-        public readonly T* BasePointer { get; }
-
-        public UnmanagedSpan(int size)
+        get
         {
-            ByteSize = size * sizeof(T);
-            BasePointer = MemoryManager.Calloc<T>(size);
-            Handle = new IntPtr(BasePointer);
-            Size = size;
-        }
-
-        public void Dispose()
-        {
-            if (Handle != IntPtr.Zero)
+            int size = range.End.Value - range.Start.Value;
+            if (size <= 0)
             {
-                MemoryManager.Free(BasePointer);
-                GC.SuppressFinalize(this);
+                throw new ArgumentOutOfRangeException(nameof(range));
             }
+            UnmanagedSpan<T> deterministicSpan = new(size);
+            Unsafe.CopyBlockUnaligned(deterministicSpan.BasePointer, BasePointer + range.Start.Value, (uint)size);
+            return deterministicSpan;
         }
+    }
 
-        public void Free() => Dispose();
+    public UnmanagedSpan(int count)
+    {
+        ByteSize = count * sizeof(T);
+        BasePointer = (T*)MemoryManager.Calloc(count, sizeof(T));
+        Handle = new IntPtr(BasePointer);
+        Count = count;
+    }
 
-        public readonly MemoryAccess<T> GetAccess() => new(BasePointer, Size);
+    public void Dispose()
+    {
+        if (Handle != IntPtr.Zero)
+        {
+            MemoryManager.Free(BasePointer);
+            GC.SuppressFinalize(this);
+        }
+    }
 
-        readonly IMemoryAccess<T> IUnmanaged<T>.GetAccess() => GetAccess();
+    public void Free() => Dispose();
+
+    public readonly MemoryAccess<T> GetAccess() => new(BasePointer, Count);
+
+    public readonly MemoryAccess<TAs> GetAccess<TAs>() where TAs : unmanaged => new((TAs*)BasePointer, ByteSize / sizeof(TAs));
+
+    readonly IMemoryAccess<TAs> IUnmanaged<T>.GetAccess<TAs>() => GetAccess<TAs>();
+
+    readonly IMemoryAccess<T> IUnmanaged<T>.GetAccess() => GetAccess();
+
+    public static UnmanagedSpan<T> Allocate(Size_T count) => new(count);
+
+    public static UnmanagedSpan<T> CreateFrom(ReadOnlySpan<T> data)
+    {
+        UnmanagedSpan<T> span = UnmanagedSpan<T>.Allocate(data.Length);
+        Span<T> destination = new(span.BasePointer, span.Count);
+        data.CopyTo(destination);
+        return span;
     }
 }

@@ -1,13 +1,15 @@
-﻿using System;
+﻿using PrySec.Core.NativeTypes;
+using System;
 
-namespace PrySec.Base.Memory
+namespace PrySec.Core.Memory;
+
+public unsafe interface IMemoryAccess<T> : IDisposable where T : unmanaged
 {
-    public unsafe interface IMemoryAccess<T> : IDisposable where T : unmanaged
-    {
-        public T* Pointer { get; }
+    public T* Pointer { get; }
 
-        public int Size { get; }
+    public int Count { get; }
 
-        public Size_T ByteSize { get; }
-    }
+    public Size32_T ByteSize { get; }
+
+    public UnsafeReference<T> GetUnsafeReference() => new(Pointer, Count);
 }

@@ -1,52 +1,56 @@
-﻿using System;
+﻿using PrySec.Core.Memory.MemoryManagement.Implementations;
+using PrySec.Core.Memory.MemoryManagement.Implementations.AllocationTracking;
+using PrySec.Core.NativeTypes;
+using System;
 using System.Runtime.CompilerServices;
 
-namespace PrySec.Base.Memory.MemoryManagement
+namespace PrySec.Core.Memory.MemoryManagement;
+
+public static unsafe partial class MemoryManager
 {
-    public static unsafe class MemoryManager
+    static MemoryManager() => UseImplementation<NativeMemoryManager>();
+
+    /// <summary>
+    /// <see langword="void"/> Free(<see langword="void*"/> ptr);
+    /// </summary>
+    public static delegate*<void*, void> Free { get; private set; } = null;
+
+    /// <summary>
+    /// <see langword="void*"/> Malloc(<see cref="Size_T"/> byteSize);
+    /// </summary>
+    public static delegate*<Size_T, void*> Malloc { get; private set; } = null;
+
+    /// <summary>
+    /// <see langword="void*"/> Realloc(<see langword="void*"/> previous, <see cref="Size_T"/> newByteSize);
+    /// </summary>
+    public static delegate*<void*, Size_T, void*> Realloc { get; private set; } = null;
+
+    /// <summary>
+    /// <see langword="void*"/> Calloc(<see cref="Size_T"/> elementCount, <see cref="Size_T"/> elementSize);
+    /// </summary>
+    public static delegate*<Size_T, Size_T, void*> Calloc { get; private set; } = null;
+
+    public static IMemoryManager Allocator { get; private set; } = null!;
+
+    public static void UseImplementation<TImpl>() where TImpl : struct, IMemoryManager
     {
-        private static IMemoryManagerImpl _memoryManagerImpl =
-#if DEBUG
-            new MemoryManagerDebugImpl();
-
-#else
-            new MemoryManagerImpl();
-#endif
-
-        public static void EnableDebugging(bool debuggingEnabled = false)
-        {
-            if (debuggingEnabled)
-            {
-                if (_memoryManagerImpl is not MemoryManagerDebugImpl)
-                {
-                    _memoryManagerImpl = new MemoryManagerDebugImpl();
-                }
-            }
-            else
-            {
-                if (_memoryManagerImpl is not MemoryManagerImpl)
-                {
-                    _memoryManagerImpl = new MemoryManagerImpl();
-                }
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-        public static void* Malloc(int cb) =>
-            _memoryManagerImpl.Malloc(cb);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-        public static void Free(void* ptr) =>
-            _memoryManagerImpl.Free(ptr);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-        public static T* Calloc<T>(int c) where T : unmanaged =>
-            _memoryManagerImpl.Calloc<T>(c);
-
-        public static AllocationSnapshot GetAllocationSnapshotForThread() =>
-            (_memoryManagerImpl as MemoryManagerDebugImpl)?.GetAllocationSnapshotForThread() ?? new AllocationSnapshot(new());
-
-        public static void ZeroMemory<T>(T* ptr, int count) where T : unmanaged =>
-            new Span<byte>(ptr, count * sizeof(T)).Fill(0);
+        Allocator = new TImpl();
+        Free = &TImpl.Free;
+        Malloc = &TImpl.Malloc;
+        Realloc = &TImpl.Realloc;
+        Calloc = &TImpl.Calloc;
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    public static void ZeroMemory<T>(T* ptr, int elementCount) where T : unmanaged =>
+        ZeroMemory((void*)ptr, elementCount * sizeof(T));
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    public static void ZeroMemory(void* ptr, int byteSize) =>
+        new Span<byte>(ptr, byteSize).Fill(0);
+
+    public static AllocationSnapshot? GetAllocationSnapshot(bool reset = false) => 
+        Allocator is IAllocationTracker tracker 
+        ? tracker.GetAllocationSnapshot(reset) 
+        : null;
 }

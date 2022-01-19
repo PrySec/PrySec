@@ -1,36 +1,35 @@
-﻿using PrySec.Base;
-using PrySec.Base.Memory;
-using PrySec.Base.Memory.MemoryManagement;
+﻿using PrySec.Core;
+using PrySec.Core.Memory;
+using PrySec.Core.Memory.MemoryManagement;
 using System;
 
-namespace PrySec.Security.MemoryProtection.Universal
+namespace PrySec.Security.MemoryProtection.Universal;
+
+public unsafe class DeterministicMemory<T> : UnmanagedMemory<T>, IProtectedMemory<T> where T : unmanaged
 {
-    public unsafe class DeterministicMemory<T> : UnmanagedMemory<T>, IProtectedMemory<T> where T : unmanaged
+    public IntPtr NativeHandle { get; }
+
+    public DeterministicMemory(int count) : base(count)
     {
-        public IntPtr NativeHandle { get; }
+        NativeHandle = new IntPtr(BasePointer);
+    }
 
-        public DeterministicMemory(int count) : base(count)
+    public override void Dispose()
+    {
+        if (BasePointer != null)
         {
-            NativeHandle = new IntPtr(BasePointer);
+            ZeroMemory();
+            MemoryManager.Free(BasePointer);
+            BasePointer = null;
+            GC.SuppressFinalize(this);
         }
+    }
 
-        public override void Dispose()
+    public void ZeroMemory()
+    {
+        if (BasePointer != null)
         {
-            if (BasePointer != Pointer.NULL)
-            {
-                ZeroMemory();
-                MemoryManager.Free(BasePointer);
-                BasePointer = (T*)Pointer.NULL;
-                GC.SuppressFinalize(this);
-            }
-        }
-
-        public void ZeroMemory()
-        {
-            if (BasePointer != Pointer.NULL)
-            {
-                new Span<byte>(BasePointer, ByteSize).Fill(0x0);
-            }
+            new Span<byte>(BasePointer, ByteSize).Fill(0x0);
         }
     }
 }

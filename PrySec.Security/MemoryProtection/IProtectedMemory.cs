@@ -1,4 +1,4 @@
-﻿using PrySec.Base.Memory;
+﻿using PrySec.Core.Memory;
 using System;
 
 namespace PrySec.Security.MemoryProtection
@@ -8,5 +8,11 @@ namespace PrySec.Security.MemoryProtection
         IntPtr NativeHandle { get; }
 
         void ZeroMemory();
+    }
+
+    public interface IProtectedMemoryFactory<TProtectedMemoryFactory, TData> : IProtectedMemory<TData>, IUnmanaged<TProtectedMemoryFactory, TData>
+        where TProtectedMemoryFactory : IProtectedMemoryFactory<TProtectedMemoryFactory,TData>
+        where TData : unmanaged
+    {
     }
 }

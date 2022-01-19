@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace PrySec.Base
+namespace PrySec.Core
 {
     public static unsafe class Utils
     {

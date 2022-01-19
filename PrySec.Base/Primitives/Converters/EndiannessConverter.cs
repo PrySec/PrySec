@@ -1,4 +1,4 @@
-﻿namespace PrySec.Base.Primitives.Converters
+﻿namespace PrySec.Core.Primitives.Converters
 {
     public static class EndiannessConverter
     {
@@ -30,7 +30,7 @@
 
         public static unsafe int Swap(int s)
         {
-            ulong result = Swap(*(uint*)&s);
+            uint result = Swap(*(uint*)&s);
             return *(int*)&result;
         }
 
