@@ -42,11 +42,11 @@ public static unsafe partial class MemoryManager
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public static void ZeroMemory<T>(T* ptr, int elementCount) where T : unmanaged =>
+    public static void ZeroMemory<T>(T* ptr, Size_T elementCount) where T : unmanaged =>
         ZeroMemory((void*)ptr, elementCount * sizeof(T));
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public static void ZeroMemory(void* ptr, int byteSize) =>
+    public static void ZeroMemory(void* ptr, Size_T byteSize) => 
         new Span<byte>(ptr, byteSize).Fill(0);
 
     public static AllocationSnapshot? GetAllocationSnapshot(bool reset = false) => 

@@ -6,20 +6,22 @@ using System.Runtime.CompilerServices;
 
 namespace PrySec.Core.Memory;
 
-public unsafe interface IUnmanaged<TData> : IDisposable
-    where TData : unmanaged
+public unsafe interface IUnmanaged : IDisposable
 {
     void Free();
 
+    Size_T ByteSize { get; }
+
+    IMemoryAccess<TAs> GetAccess<TAs>() where TAs : unmanaged;
+}
+
+public unsafe interface IUnmanaged<TData> : IUnmanaged where TData : unmanaged
+{
     TData* BasePointer { get; }
 
     int Count { get; }
 
-    Size_T ByteSize { get; }
-
     IMemoryAccess<TData> GetAccess();
-
-    IMemoryAccess<TAs> GetAccess<TAs>() where TAs : unmanaged;
 }
 
 public unsafe interface IUnmanaged<TUnmanaged, TData> : IUnmanaged<TData>

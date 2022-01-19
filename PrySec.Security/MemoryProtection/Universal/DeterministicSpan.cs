@@ -5,6 +5,7 @@ using PrySec.Core.NativeTypes;
 using PrySec.Core.Primitives;
 using System;
 using System.Runtime.CompilerServices;
+using System.Xml.Linq;
 
 namespace PrySec.Security.MemoryProtection.Universal;
 
@@ -41,7 +42,7 @@ public unsafe readonly struct DeterministicSpan<T> : IProtectedMemoryFactory<Det
         NativeHandle = new IntPtr(BasePointer);
     }
 
-    private DeterministicSpan(int byteSize, T* basePointer)
+    private DeterministicSpan(T* basePointer, int byteSize)
     {
         ByteSize = byteSize;
         Count = byteSize / sizeof(T);
@@ -70,13 +71,13 @@ public unsafe readonly struct DeterministicSpan<T> : IProtectedMemoryFactory<Det
     public readonly void ZeroMemory() => new Span<byte>(BasePointer, ByteSize).Fill(0x0);
 
     public DeterministicSpan<TNew> As<TNew>() where TNew : unmanaged =>
-        new(ByteSize, (TNew*)BasePointer);
+        new((TNew*)BasePointer, ByteSize);
 
     public static DeterministicSpan<T> Allocate(Size_T count) => new(count);
 
     public readonly MemoryAccess<TAs> GetAccess<TAs>() where TAs : unmanaged => new((TAs*)BasePointer, ByteSize / sizeof(TAs));
 
-    readonly IMemoryAccess<TAs> IUnmanaged<T>.GetAccess<TAs>() => GetAccess<TAs>();
+    readonly IMemoryAccess<TAs> IUnmanaged.GetAccess<TAs>() => GetAccess<TAs>();
 
     public static DeterministicSpan<T> CreateFrom(ReadOnlySpan<T> data)
     {

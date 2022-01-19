@@ -54,7 +54,7 @@ public unsafe readonly struct UnmanagedSpan<T> : IUnmanaged<UnmanagedSpan<T>, T>
 
     public readonly MemoryAccess<TAs> GetAccess<TAs>() where TAs : unmanaged => new((TAs*)BasePointer, ByteSize / sizeof(TAs));
 
-    readonly IMemoryAccess<TAs> IUnmanaged<T>.GetAccess<TAs>() => GetAccess<TAs>();
+    readonly IMemoryAccess<TAs> IUnmanaged.GetAccess<TAs>() => GetAccess<TAs>();
 
     readonly IMemoryAccess<T> IUnmanaged<T>.GetAccess() => GetAccess();
 

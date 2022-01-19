@@ -55,5 +55,5 @@ public unsafe class UnmanagedMemory<T> : IUnmanaged<T> where T : unmanaged
 
     public virtual MemoryAccess<TAs> GetAccess<TAs>() where TAs : unmanaged => new((TAs*)BasePointer, ByteSize / sizeof(TAs));
 
-    IMemoryAccess<TAs> IUnmanaged<T>.GetAccess<TAs>() => GetAccess<TAs>();
+    IMemoryAccess<TAs> IUnmanaged.GetAccess<TAs>() => GetAccess<TAs>();
 }
