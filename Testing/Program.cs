@@ -3,100 +3,45 @@
 using PrySec.Core.Memory.MemoryManagement;
 using PrySec.Core.Memory.MemoryManagement.Implementations;
 using PrySec.Core.Memory.MemoryManagement.Implementations.AllocationTracking;
+using PrySec.Core.Simd;
+using PrySec.Security.Cryptography.Hashing.Blake2;
+using PrySec.Security.MemoryProtection.Universal;
 using System;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
 using Testing;
 
-Test.Asdf(0);
 
-return;
-
-const uint WARMUP = 10_000_000;
-const uint ITERATIONS = 2_500_000_000;
+const uint WARMUP = 10_000;
+const uint ITERATIONS = 1_000_000;
 
 unsafe
 {
-    string str = new('A', 10000);
+    string str = new string('A', 100000);
     int strLength = str.Length;
+    DeterministicSpan<byte> span = DeterministicSpan<byte>.Allocate(strLength);
     fixed (char* pStr = str)
     {
+        Unsafe.CopyBlockUnaligned(span.BasePointer, pStr, (uint)strLength);
         Console.WriteLine($"Calling Test Methods {ITERATIONS} times with additional warmup of {WARMUP} ...");
         Console.WriteLine();
         // setup
 
         // warmup
+        Blake2b b = new Blake2b();
         for (uint i = 0; i < WARMUP; i++)
         {
-            _ = InstanceTest.Test(i);
+            using var _ = b.ComputeHash<byte, DeterministicSpan<byte>, DeterministicSpan<byte>>(ref span);
         }
         Stopwatch stopwatch = new();
         stopwatch.Start();
         for (uint i = 0; i < ITERATIONS; i++)
         {
-            _ = InstanceTest.Test(i);
+            using var _ = b.ComputeHash<byte, DeterministicSpan<byte>, DeterministicSpan<byte>>(ref span);
         }
         stopwatch.Stop();
-        Console.WriteLine("private static instance call forward:");
-        Console.WriteLine(stopwatch.Elapsed);
-        Console.WriteLine($"That's {stopwatch.ElapsedMilliseconds / (double)ITERATIONS} ms / it");
-        Console.WriteLine($"Or {(double)ITERATIONS / stopwatch.ElapsedMilliseconds * 1000} it / s");
-        Console.WriteLine();
-
-        // setup
-        DelegateTest.Use<DelegateTestImpl>();
-        // warmup
-        for (uint i = 0; i < WARMUP; i++)
-        {
-            _ = DelegateTest.Test(i);
-        }
-        stopwatch = new();
-        stopwatch.Start();
-        for (uint i = 0; i < ITERATIONS; i++)
-        {
-            _ = DelegateTest.Test(i);
-        }
-        stopwatch.Stop();
-        Console.WriteLine("delegate call:");
-        Console.WriteLine(stopwatch.Elapsed);
-        Console.WriteLine($"That's {stopwatch.ElapsedMilliseconds / (double)ITERATIONS} ms / it");
-        Console.WriteLine($"Or {(double)ITERATIONS / stopwatch.ElapsedMilliseconds * 1000} it / s");
-        Console.WriteLine();
-
-        // setup
-        DelegateTestExpressionTree.Use<DelegateTestImpl>();
-        // warmup
-        for (uint i = 0; i < WARMUP; i++)
-        {
-            _ = DelegateTestExpressionTree.Test(i);
-        }
-        stopwatch = new();
-        stopwatch.Start();
-        for (uint i = 0; i < ITERATIONS; i++)
-        {
-            _ = DelegateTestExpressionTree.Test(i);
-        }
-        stopwatch.Stop();
-        Console.WriteLine("delegate call via expression tree:");
-        Console.WriteLine(stopwatch.Elapsed);
-        Console.WriteLine($"That's {stopwatch.ElapsedMilliseconds / (double)ITERATIONS} ms / it");
-        Console.WriteLine($"Or {(double)ITERATIONS / stopwatch.ElapsedMilliseconds * 1000} it / s");
-        Console.WriteLine();
-
-        // setup
-        FuctionPointerTestWithProperty.Use<DelegateTestImpl>();
-        // warmup
-        for (uint i = 0; i < WARMUP; i++)
-        {
-            _ = FuctionPointerTestWithProperty.Test(i);
-        }
-        stopwatch = new();
-        stopwatch.Start();
-        for (uint i = 0; i < ITERATIONS; i++)
-        {
-            _ = FuctionPointerTestWithProperty.Test(i);
-        }
-        stopwatch.Stop();
-        Console.WriteLine("static function pointer call:");
         Console.WriteLine(stopwatch.Elapsed);
         Console.WriteLine($"That's {stopwatch.ElapsedMilliseconds / (double)ITERATIONS} ms / it");
         Console.WriteLine($"Or {(double)ITERATIONS / stopwatch.ElapsedMilliseconds * 1000} it / s");
@@ -105,6 +50,13 @@ unsafe
 }
 
 /*
+ * 
+ * 
+pmdbs2x blake:
+
+00:03:34.3069093
+That's 0.214306 ms / hash
+Or 4666.2249307065595 hashes / s
 
 =======================================
 

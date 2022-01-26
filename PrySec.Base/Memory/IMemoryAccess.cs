@@ -9,7 +9,7 @@ public unsafe interface IMemoryAccess<T> : IDisposable where T : unmanaged
 
     public int Count { get; }
 
-    public Size32_T ByteSize { get; }
+    public Size_T ByteSize { get; }
 
     public UnsafeReference<T> GetUnsafeReference() => new(Pointer, Count);
 }

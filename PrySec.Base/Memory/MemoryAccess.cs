@@ -15,7 +15,7 @@ public unsafe readonly struct MemoryAccess<T> : IMemoryAccess<T> where T : unman
 
     public readonly int Count { get; }
 
-    public Size32_T ByteSize { get; }
+    public Size_T ByteSize { get; }
 
     public readonly void Dispose()
     {
