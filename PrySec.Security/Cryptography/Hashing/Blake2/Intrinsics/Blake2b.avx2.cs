@@ -11,6 +11,7 @@ public unsafe partial class Blake2b
 {
     private static class Blake2HwIntrinsicsAvx2
     {
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static void HashCore(BlakeCompressionState* state)
         {
             Size_T CHUNK_BYTE_SIZE = 128;
@@ -52,7 +53,7 @@ public unsafe partial class Blake2b
                 0UL
             );
 
-            ulong* m = (ulong*)state->Input;
+            ulong* message = (ulong*)state->Input;
 
             int* sigma = SIGMA;
             Vector256<ulong> va = Avx.LoadDquVector256(state->Hash);
@@ -72,8 +73,8 @@ public unsafe partial class Blake2b
                 // Mix(V3, V7, V11, V15, m[S6], m[S7])
 
                 // load the first half of the input ...
-                Vector256<ulong> x = Vector256.Create(m[sigma[0]], m[sigma[2]], m[sigma[4]], m[sigma[6]]);
-                Vector256<ulong> y = Vector256.Create(m[sigma[1]], m[sigma[3]], m[sigma[5]], m[sigma[7]]);
+                Vector256<ulong> x = Vector256.Create(message[sigma[0]], message[sigma[2]], message[sigma[4]], message[sigma[6]]);
+                Vector256<ulong> y = Vector256.Create(message[sigma[1]], message[sigma[3]], message[sigma[5]], message[sigma[7]]);
 
                 // do 4 mix steps in one go
                 Mix(ref va, ref vb, ref vc, ref vd, in x, in y);
@@ -95,8 +96,8 @@ public unsafe partial class Blake2b
                 vd = AvxPrimitives.RotateLaneRight64Bit(vd);
 
                 // load the remaining input ...
-                x = Vector256.Create(m[sigma[8]], m[sigma[10]], m[sigma[12]], m[sigma[14]]);
-                y = Vector256.Create(m[sigma[9]], m[sigma[11]], m[sigma[13]], m[sigma[15]]);
+                x = Vector256.Create(message[sigma[8]], message[sigma[10]], message[sigma[12]], message[sigma[14]]);
+                y = Vector256.Create(message[sigma[9]], message[sigma[11]], message[sigma[13]], message[sigma[15]]);
 
                 // do 4 mix steps in one go
                 Mix(ref va, ref vb, ref vc, ref vd, in x, in y);

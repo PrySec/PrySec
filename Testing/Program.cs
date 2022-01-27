@@ -13,13 +13,12 @@ using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 using Testing;
 
-
 const uint WARMUP = 10_000;
-const uint ITERATIONS = 1_000_000;
+const uint ITERATIONS = 250_000;
 
 unsafe
 {
-    string str = new string('A', 100000);
+    string str = new('A', 100000);
     int strLength = str.Length;
     DeterministicSpan<byte> span = DeterministicSpan<byte>.Allocate(strLength);
     fixed (char* pStr = str)
@@ -54,9 +53,19 @@ unsafe
  * 
 pmdbs2x blake:
 
-00:03:34.3069093
+00:xx:xx
 That's 0.214306 ms / hash
 Or 4666.2249307065595 hashes / s
+
+PrySec AVX2
+00:00:45.2073221
+That's 0.180828 ms / it
+Or 5530.117017276085 it / s
+
+Prysec default
+00:01:06.7934403
+That's 0.267172 ms / it
+Or 3742.9071908732953 it / s
 
 =======================================
 
