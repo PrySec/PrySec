@@ -12,10 +12,25 @@ namespace PrySec.Security.Cryptography.Hashing.Blake2;
 
 public unsafe partial class Blake2b
 {
+    /// <summary>
+    /// Computes the hash value for the specified <paramref name="input"/>.
+    /// </summary>
+    /// <typeparam name="T">The type of the <paramref name="input"/>.</typeparam>
+    /// <param name="input">The input to compute the hash code for.</param>
+    /// <returns>The computed hash code.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public IUnmanaged<byte> ComputeHash<T>(ref IUnmanaged<T> input) where T : unmanaged =>
         ComputeHash<T, IUnmanaged<T>, DeterministicSpan<byte>>(ref input, 64);
 
+    /// <summary>
+    /// Computes the hash value for the specified <paramref name="input"/>.
+    /// </summary>
+    /// <typeparam name="TInput">The type of the <paramref name="input"/>.</typeparam>
+    /// <typeparam name="TInputMemory">The type of the <paramref name="input"/> memory.</typeparam>
+    /// <typeparam name="TOutputMemory">The type of the output memory.</typeparam>
+    /// <param name="input">The input to compute the hash code for.</param>
+    /// <param name="key">The key to compute the hash code for.</param>
+    /// <returns>The computed hash code.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public IUnmanaged<byte> ComputeHash<TInput, TInputMemory, TOutputMemory>(ref TInputMemory input, ref TInputMemory key)
         where TInputMemory : IUnmanaged<TInput>
@@ -23,6 +38,16 @@ public unsafe partial class Blake2b
         where TInput : unmanaged =>
         ComputeHash<TInput, TInput, TInputMemory, TInputMemory, TOutputMemory>(ref input, ref key, 64);
 
+    /// <summary>
+    /// Computes the hash value for the specified <paramref name="input"/>.
+    /// </summary>
+    /// <typeparam name="TInput">The type of the <paramref name="input"/>.</typeparam>
+    /// <typeparam name="TInputMemory">The type of the <paramref name="input"/> memory.</typeparam>
+    /// <typeparam name="TOutputMemory">The type of the output memory.</typeparam>
+    /// <param name="input">The input to compute the hash code for.</param>
+    /// <param name="key">The key to compute the hash code for.</param>
+    /// <param name="digestLength">The digest length.</param>
+    /// <returns>The computed hash code.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public IUnmanaged<byte> ComputeHash<TInput, TInputMemory, TOutputMemory>(ref TInputMemory input, ref TInputMemory key, Size32_T digestLength)
         where TInputMemory : IUnmanaged<TInput>
@@ -30,6 +55,17 @@ public unsafe partial class Blake2b
         where TInput : unmanaged =>
         ComputeHash<TInput, TInput, TInputMemory, TInputMemory, TOutputMemory>(ref input, ref key, digestLength);
 
+    /// <summary>
+    /// Computes the hash value for the specified <paramref name="input"/>.
+    /// </summary>
+    /// <typeparam name="TData">The type of the <paramref name="input"/>.</typeparam>
+    /// <typeparam name="TKey">The type of the <paramref name="key"/>.</typeparam>
+    /// <typeparam name="TDataInputMemory">The type of the <paramref name="input"/> memory.</typeparam>
+    /// <typeparam name="TKeyInputMemory">The type of the <paramref name="key"/> memory.</typeparam>
+    /// <typeparam name="TOutputMemory">The type of the output memory.</typeparam>
+    /// <param name="input">The input to compute the hash code for.</param>
+    /// <param name="key">The key to compute the hash code for.</param>
+    /// <returns>The computed hash code.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public IUnmanaged<byte> ComputeHash<TData, TKey, TDataInputMemory, TKeyInputMemory, TOutputMemory>(ref TDataInputMemory input, ref TKeyInputMemory key)
         where TDataInputMemory : IUnmanaged<TData>
@@ -39,6 +75,14 @@ public unsafe partial class Blake2b
         where TKey : unmanaged =>
         ComputeHash<TData, TKey, TDataInputMemory, TKeyInputMemory, TOutputMemory>(ref input, ref key, 64);
 
+    /// <summary>
+    /// Computes the hash value for the specified <paramref name="input"/>.
+    /// </summary>
+    /// <typeparam name="TData">The type of the <paramref name="input"/>.</typeparam>
+    /// <typeparam name="TInputMemory">The type of the <paramref name="input"/> memory.</typeparam>
+    /// <typeparam name="TOutputMemory">The type of the output memory.</typeparam>
+    /// <param name="input">The input to compute the hash code for.</param>
+    /// <returns>The computed hash code.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TOutputMemory ComputeHash<TData, TInputMemory, TOutputMemory>(ref TInputMemory input)
         where TData : unmanaged
