@@ -1,23 +1,21 @@
-﻿using PrySec.Core;
-using PrySec.Core.Memory;
+﻿using PrySec.Core.Memory;
 using PrySec.Core.Memory.MemoryManagement;
 using PrySec.Core.NativeTypes;
 using PrySec.Security.MemoryProtection.Universal;
 using System;
 using System.Runtime.CompilerServices;
-using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 
 namespace PrySec.Security.Cryptography.Hashing.Blake2;
 
 public unsafe partial class Blake2b : IHashFunctionScp
 {
-    private static readonly ulong[] IV = new ulong[] 
+    private static readonly ulong[] IV = new ulong[]
     {
         0x6a09e667f3bcc908UL, 0xbb67ae8584caa73bUL,
         0x3c6ef372fe94f82bUL, 0xa54ff53a5f1d36f1UL,
         0x510e527fade682d1UL, 0x9b05688c2b3e6c1fUL,
-        0x1f83d9abfb41bd6bUL, 0x5be0cd19137e2179UL 
+        0x1f83d9abfb41bd6bUL, 0x5be0cd19137e2179UL
     };
 
     private const uint IV_BYTE_SIZE = 64;

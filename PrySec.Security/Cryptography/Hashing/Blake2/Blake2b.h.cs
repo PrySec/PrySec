@@ -1,12 +1,7 @@
 ﻿using PrySec.Core.Memory;
 using PrySec.Core.NativeTypes;
 using PrySec.Security.MemoryProtection.Universal;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace PrySec.Security.Cryptography.Hashing.Blake2;
 
@@ -90,7 +85,7 @@ public unsafe partial class Blake2b
         where TOutputMemory : IUnmanaged<TOutputMemory, byte> =>
         ComputeHash<TData, TInputMemory, TOutputMemory>(ref input, 64);
 
-    private readonly ref struct Blake2State<TInputMemory>
+    private readonly struct Blake2State<TInputMemory>
         where TInputMemory : IUnmanaged
     {
         public readonly TInputMemory Input;
@@ -145,7 +140,7 @@ public unsafe partial class Blake2b
         LastBlock = ~NotLastBlock,
     }
 
-    private static readonly int[,] SIGMA_IV = new int[12,16]
+    private static readonly int[,] SIGMA_IV = new int[12, 16]
     {
         {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},
         {14, 10, 4, 8, 9, 15, 13, 6, 1, 12, 0, 2, 11, 7, 5, 3},

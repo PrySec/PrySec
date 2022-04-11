@@ -37,6 +37,7 @@ public static class AvxPrimitives
     public static Vector256<ulong> RotateLaneLeft64Bit(Vector256<ulong> input)
     {
         Vector256<double> tmp = Avx.Permute(input.As<ulong, double>(), 0x5);
+        
         return Avx.Blend(tmp, Avx.Permute2x128(tmp, tmp, 1), 0xa).As<double, ulong>();
     }
 
@@ -57,4 +58,8 @@ public static class AvxPrimitives
         Vector256<double> tmp = Avx.Permute(input.As<ulong, double>(), 0x5);
         return Avx.Permute2x128(tmp, tmp, 1).As<double, ulong>();
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    public static Vector256<ulong> SwapMiddleX64(Vector256<ulong> input) =>
+        Avx2.Permute4x64(input, 0b11011000);
 }
