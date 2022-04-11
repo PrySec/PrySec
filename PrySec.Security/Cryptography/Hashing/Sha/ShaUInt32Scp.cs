@@ -1,6 +1,6 @@
-﻿using PrySec.Core.Memory;
+﻿using PrySec.Core.HwPrimitives;
+using PrySec.Core.Memory;
 using PrySec.Core.NativeTypes;
-using PrySec.Core.Primitives;
 using System;
 using System.Runtime.CompilerServices;
 

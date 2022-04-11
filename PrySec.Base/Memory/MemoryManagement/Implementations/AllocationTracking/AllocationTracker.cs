@@ -12,6 +12,10 @@ public readonly unsafe struct AllocationTracker<TMemoryManager> : IMemoryManager
 
     private readonly TMemoryManager _impl = new();
 
+    public AllocationTracker()
+    {
+    }
+
     public static void* Calloc(Size_T count, Size_T size)
     {
         void* p = TMemoryManager.Calloc(count, size);

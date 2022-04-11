@@ -1,6 +1,6 @@
-﻿using PrySec.Core.Memory.MemoryManagement;
+﻿using PrySec.Core.HwPrimitives;
+using PrySec.Core.Memory.MemoryManagement;
 using PrySec.Core.NativeTypes;
-using PrySec.Core.Simd;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;

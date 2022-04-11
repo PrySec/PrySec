@@ -1,6 +1,6 @@
 ﻿using PrySec.Core.Exceptions;
+using PrySec.Core.HwPrimitives;
 using PrySec.Core.NativeTypes;
-using PrySec.Core.Primitives;
 using System;
 using System.Runtime.CompilerServices;
 

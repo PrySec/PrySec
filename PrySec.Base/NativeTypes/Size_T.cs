@@ -27,6 +27,8 @@ public readonly struct Size_T
     public static implicit operator Size_T(nuint i) => new(i);
 
     public static explicit operator IntPtr(Size_T size) => new(size);
+    
+    public static explicit operator byte(Size_T size) => (byte)size.value;
 
     public static Size_T operator *(Size_T a, Size_T b) => new(a.value * b.value);
 }

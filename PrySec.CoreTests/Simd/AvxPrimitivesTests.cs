@@ -1,5 +1,5 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using PrySec.Core.Simd;
+using PrySec.Core.HwPrimitives;
 using System;
 using System.Collections.Generic;
 using System.Linq;

@@ -13,6 +13,10 @@ public readonly unsafe struct ThreadLocalAllocationTracker<TMemoryManager> : IMe
 
     private readonly TMemoryManager _impl = new();
 
+    public ThreadLocalAllocationTracker()
+    {
+    }
+
     public static void* Calloc(Size_T count, Size_T size)
     {
         void* p = TMemoryManager.Calloc(count, size);

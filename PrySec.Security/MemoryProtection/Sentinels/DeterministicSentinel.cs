@@ -1,0 +1,49 @@
+﻿using PrySec.Core.Memory;
+using PrySec.Core.NativeTypes;
+using System;
+using System.Runtime.CompilerServices;
+
+namespace PrySec.Security.MemoryProtection.Sentinels;
+
+/// <summary>
+/// Protects an already existing block of memory.
+/// </summary>
+/// <typeparam name="T"></typeparam>
+public unsafe readonly struct DeterministicSentinel<T> : IProtectedMemory<T> where T : unmanaged
+{
+    public T* BasePointer { get; }
+
+    public int Count => 1;
+
+    public Size_T ByteSize { get; }
+
+    public IntPtr NativeHandle { get; }
+
+    public DeterministicSentinel(T* basePointer, Size_T byteSize)
+    {
+        BasePointer = basePointer;
+        ByteSize = byteSize;
+        NativeHandle = new IntPtr(basePointer);
+    }
+
+    public void Dispose()
+    {
+        if (BasePointer != null)
+        {
+            ZeroMemory();
+        }
+    }
+    
+    public void Free() => Dispose();
+    
+    public void ZeroMemory() => Unsafe.InitBlockUnaligned(BasePointer, 0x0, ByteSize);
+
+    public readonly MemoryAccess<TAs> GetAccess<TAs>() where TAs : unmanaged =>
+        new((TAs*)BasePointer, ByteSize / sizeof(TAs));
+    
+    readonly IMemoryAccess<TAs> IUnmanaged.GetAccess<TAs>() => GetAccess<TAs>();
+
+    public readonly MemoryAccess<T> GetAccess() => new(BasePointer, Count);
+
+    readonly IMemoryAccess<T> IUnmanaged<T>.GetAccess() => GetAccess();
+}
