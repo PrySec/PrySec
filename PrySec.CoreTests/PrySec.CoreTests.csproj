@@ -16,7 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\PrySec.Base\PrySec.Core.csproj" />
+    <ProjectReference Include="..\PrySec.Core\PrySec.Core.csproj" />
   </ItemGroup>
 
 </Project>
