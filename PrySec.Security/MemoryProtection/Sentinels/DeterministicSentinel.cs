@@ -1,4 +1,5 @@
 ﻿using PrySec.Core.Memory;
+using PrySec.Core.Memory.MemoryManagement;
 using PrySec.Core.NativeTypes;
 using System;
 using System.Runtime.CompilerServices;
@@ -6,7 +7,7 @@ using System.Runtime.CompilerServices;
 namespace PrySec.Security.MemoryProtection.Sentinels;
 
 /// <summary>
-/// Protects an already existing block of memory.
+/// Protects an already existing block of memory by guaranteeing that it is zeroed out before it is freed.
 /// </summary>
 /// <typeparam name="T"></typeparam>
 public unsafe readonly struct DeterministicSentinel<T> : IProtectedMemory<T> where T : unmanaged
@@ -35,8 +36,8 @@ public unsafe readonly struct DeterministicSentinel<T> : IProtectedMemory<T> whe
     }
     
     public void Free() => Dispose();
-    
-    public void ZeroMemory() => Unsafe.InitBlockUnaligned(BasePointer, 0x0, ByteSize);
+
+    public void ZeroMemory() => MemoryManager.ZeroMemory(BasePointer, Count);
 
     public readonly MemoryAccess<TAs> GetAccess<TAs>() where TAs : unmanaged =>
         new((TAs*)BasePointer, ByteSize / sizeof(TAs));

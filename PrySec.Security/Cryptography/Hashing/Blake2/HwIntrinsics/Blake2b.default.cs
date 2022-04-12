@@ -16,7 +16,7 @@ namespace PrySec.Security.Cryptography.Hashing.Blake2;
 
 public unsafe partial class Blake2b
 {
-    private static class Blake2Default
+    private static class Blake2HwIntrinsicsDefault
     {
         public static void HashCore(BlakeCompressionState* state)
         {

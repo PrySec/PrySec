@@ -5,7 +5,7 @@ namespace PrySec.Security.Cryptography.Hashing.Blake3;
 public unsafe partial class Blake3
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public static void LoadKeyWords(byte* key, uint* keyWords)
+    private static void LoadKeyWords(byte* key, uint* keyWords)
     {
         uint* keyPtrAsUInt = (uint*)key;
         keyWords[0] = BinaryUtils.ReadUInt32LittleEndian(keyPtrAsUInt);
@@ -19,7 +19,7 @@ public unsafe partial class Blake3
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public static void StoreCvWords(byte* bytesOut, uint* cvWords)
+    private static void StoreCvWords(byte* bytesOut, uint* cvWords)
     {
         uint* bytesOutAsUInt = (uint*)bytesOut;
         BinaryUtils.WriteUInt32LittleEndian(bytesOutAsUInt, cvWords[0]);
@@ -31,4 +31,10 @@ public unsafe partial class Blake3
         BinaryUtils.WriteUInt32LittleEndian(bytesOutAsUInt + 6, cvWords[6]);
         BinaryUtils.WriteUInt32LittleEndian(bytesOutAsUInt + 7, cvWords[7]);
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    private static uint CounterLow(ulong counter) => (uint)counter;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    private static uint CounterHigh(ulong counter) => (uint)(counter >> 32);
 }

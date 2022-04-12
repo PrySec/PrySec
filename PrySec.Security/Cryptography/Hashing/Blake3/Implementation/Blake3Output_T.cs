@@ -1,4 +1,6 @@
-﻿using PrySec.Security.MemoryProtection.Universal;
+﻿using PrySec.Core.Memory.MemoryManagement;
+using PrySec.Core.NativeTypes;
+using PrySec.Security.MemoryProtection.Universal;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -47,5 +49,35 @@ public unsafe partial class Blake3
         [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         public static void Parent(Output_T* raw, byte* block, uint* key, Blake3Flags flags) => 
             Make(raw, key, block, BLAKE3_BLOCK_LEN, 0, flags | Blake3Flags.PARENT);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        public static void RootBytes(Output_T* self, ulong seek, byte* output, Size_T outputLength)
+        {
+            ulong outputBlockCounter = seek / BLAKE3_BLOCK_LEN;
+
+            // % will get optimized away by the JIT because BLAKE3_BLOCK_LEN is const.
+            nuint offsetWithinBlock = (nuint)(seek % BLAKE3_BLOCK_LEN);
+
+            byte* wideBuffer = stackalloc byte[BLAKE3_BLOCK_LEN];
+            while (outputLength > 0)
+            {
+                _compressXofImpl(self->InputCv,
+                                 self->Block,
+                                 self->BlockLength,
+                                 outputBlockCounter,
+                                 self->Flags | Blake3Flags.ROOT,
+                                 wideBuffer);
+
+                nuint availableBytes = BLAKE3_BLOCK_LEN - offsetWithinBlock;
+                nuint memcpyLength = outputLength > availableBytes 
+                    ? availableBytes 
+                    : (nuint)outputLength;
+                MemoryManager.Memcpy(output, wideBuffer + offsetWithinBlock, memcpyLength);
+                output += memcpyLength;
+                outputLength -= memcpyLength;
+                outputBlockCounter++;
+                offsetWithinBlock = 0;
+            }
+        }
     }
 }

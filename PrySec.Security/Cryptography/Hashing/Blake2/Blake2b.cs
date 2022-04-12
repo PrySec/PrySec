@@ -39,7 +39,7 @@ public unsafe partial class Blake2b : IHashFunctionScp
         HashCoreImpl = true switch
         {
             _ when Avx2.IsSupported => &Blake2HwIntrinsicsAvx2.HashCore,
-            _ => &Blake2Default.HashCore
+            _ => &Blake2HwIntrinsicsDefault.HashCore
         };
     }
 

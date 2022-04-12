@@ -4,6 +4,8 @@ using PrySec.Core.Memory.MemoryManagement;
 using PrySec.Core.Memory.MemoryManagement.Implementations;
 using PrySec.Core.Memory.MemoryManagement.Implementations.AllocationTracking;
 using PrySec.Security.Cryptography.Hashing.Blake2;
+using PrySec.Security.Cryptography.Hashing.Blake3;
+using PrySec.Security.Cryptography.Hashing;
 using PrySec.Security.MemoryProtection.Universal;
 using System;
 using System.Diagnostics;
@@ -13,49 +15,8 @@ using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 using Testing;
 
-const uint _WARMUP = 1_000_000;
-const uint _ITERATIONS = 25_000_000;
-
-unsafe
-{
-    byte* ptr = (byte*)NativeMemory.AllocZeroed(65536);
-    for (int i = 0; i < _WARMUP; i++)
-    {
-        Unsafe.InitBlockUnaligned(ptr, 0, 65536);
-    }
-    Stopwatch sw = Stopwatch.StartNew();
-    for (int i = 0; i < _ITERATIONS; i++)
-    {
-        Unsafe.InitBlockUnaligned(ptr, 0, 65536);
-    }
-    sw.Stop();
-    Console.WriteLine(sw.Elapsed);
-    Console.WriteLine($"That's {sw.ElapsedMilliseconds / (double)_ITERATIONS} ms / it");
-    Console.WriteLine($"Or {(double)_ITERATIONS / sw.ElapsedMilliseconds * 1000} it / s");
-    NativeMemory.Free(ptr);
-}
-
-/*
-
-Unsafe.InitBlockUnaligned(ptr, 0, 65536);
-
-00:00:54.4558939
-That's 0.0021782 ms / it
-Or 459094.66531998897 it / s
-
-
-Span.Fill:
-
-00:00:54.4351540
-That's 0.0021774 ms / it
-Or 459263.3416000735 it / s
-
- */
-
-return;
-
-const uint WARMUP = 10_000;
-const uint ITERATIONS = 250_000;
+const uint WARMUP = 1_000;
+const uint ITERATIONS = 2_000;
 
 unsafe
 {
@@ -70,7 +31,7 @@ unsafe
         // setup
 
         // warmup
-        Blake2b b = new Blake2b();
+        Blake3 b = new Blake3();
         for (uint i = 0; i < WARMUP; i++)
         {
             using var _ = b.ComputeHash<byte, DeterministicSpan<byte>, DeterministicSpan<byte>>(ref span);

@@ -46,8 +46,16 @@ public static unsafe partial class MemoryManager
         ZeroMemory((void*)ptr, elementCount * sizeof(T));
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public static void ZeroMemory(void* ptr, Size_T byteSize) => 
-        new Span<byte>(ptr, byteSize).Fill(0);
+    public static void ZeroMemory(void* ptr, Size_T byteSize) =>
+        Unsafe.InitBlockUnaligned(ptr, 0x0, byteSize);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    public static void Memcpy(void* destination, void* source, Size_T byteSize) =>
+        Unsafe.CopyBlockUnaligned(destination, source, byteSize);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    public static void Memset(void* ptr, byte value, Size_T byteSize) =>
+        Unsafe.InitBlockUnaligned(ptr, value, byteSize);
 
     public static AllocationSnapshot? GetAllocationSnapshot(bool reset = false) => 
         Allocator is IAllocationTracker tracker 

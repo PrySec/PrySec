@@ -9,6 +9,7 @@ namespace PrySec.Core.HwPrimitives;
 
 public static unsafe partial class BinaryUtils
 {
+    // TODO: consider using properties for direct inlining?
     private static readonly delegate*<int*, uint, int> _bitScanReverseImpl;
     private static readonly delegate*<int*, ulong, int> _bitScanReverse64Impl;
     private static readonly delegate*<uint, int> _populationCountImpl;
@@ -84,8 +85,20 @@ public static unsafe partial class BinaryUtils
     public static ulong RoundDownToPowerOf2(ulong value)
     {
         int index;
-        BitScanReverse(&index, value);
-        return 1uL << (index | 0x1);
+        BitScanReverse(&index, value | 0x1);
+        return 1uL << index;
+    }
+
+    /// <summary>
+    /// Finds the largest power of two less than or equal to <paramref name="value"/>.
+    /// </summary>
+    /// <remarks>As a special case, returns <c>1</c> when <paramref name="value"/> is <c>0</c>.</remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    public static uint RoundDownToPowerOf2(uint value)
+    {
+        int index;
+        BitScanReverse(&index, value | 0x1);
+        return 1u << index;
     }
 
     /// <summary>

@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using PrySec.Core.NativeTypes;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
@@ -7,6 +8,8 @@ namespace PrySec.Security.Cryptography.Hashing.Blake3;
 
 public unsafe partial class Blake3
 {
+    public const string BLAKE3_VERSION = "1.3.1";
+
     /// <summary>
     /// in bytes
     /// </summary>
@@ -57,21 +60,34 @@ public unsafe partial class Blake3
         {11, 15, 5, 0, 1, 9, 8, 6, 14, 10, 2, 12, 3, 4, 7, 13},
     };
 
+    private static delegate*<uint*, byte*, byte, ulong, Blake3Flags, void> _compressInPlaceImpl;
+    private static delegate*<byte**, Size64_T, Size_T, uint*, ulong, bool, Blake3Flags, Blake3Flags, Blake3Flags, byte*, void> _hashManyImpl;
+    private static delegate*<uint*, byte*, byte, ulong, Blake3Flags, byte*, void> _compressXofImpl;
+
     static Blake3()
     {
         // TODO: actually check for SIMD support here.
-        MAX_SIMD_DEGREE = 16;
+        MAX_SIMD_DEGREE = 8;
         MAX_SIMD_DEGREE_OR_2 = MAX_SIMD_DEGREE > 2 ? MAX_SIMD_DEGREE : 2;
 
         BLAKE3_SIMD_DEGREE = 0 switch
         {
             // Uncomment once we have support for AVX512 in the .net runtime
             //_ when Avx512.IsSupported => 16,
-            _ when Avx2.IsSupported => 8,
-            _ when Sse41.IsSupported => 4,
-            _ when Sse2.IsSupported => 4,
-            _ when AdvSimd.IsSupported => 4,
-            _ => 1
+            // TODO:
+            //_ when Avx2.IsSupported => 8,
+            //_ when Sse41.IsSupported => 4,
+            //_ when Sse2.IsSupported => 4,
+            //_ when AdvSimd.IsSupported => 4,
+            _ => UseSimdImplementation<Blake3HwIntrinsicsDefault>()
         };
+    }
+
+    private static int UseSimdImplementation<T>() where T : IBlake3Implementation
+    {
+        _compressInPlaceImpl = &T.CompressInPlace;
+        _hashManyImpl = &T.HashMany;
+        _compressXofImpl = &T.CompressXof;
+        return T.SimdDegree;
     }
 }

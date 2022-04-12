@@ -52,7 +52,6 @@ public class Blake2bTests : BaseTest
         AssertMemoryFreed();
     }
 
-
     [TestCleanup]
     public void Cleanup() => MemoryManager.GetAllocationSnapshot(true);
 }
