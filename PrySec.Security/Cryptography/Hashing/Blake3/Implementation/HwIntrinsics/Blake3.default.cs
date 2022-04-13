@@ -10,12 +10,14 @@ public unsafe partial class Blake3
     {
         public static int SimdDegree => 1;
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static void CompressInPlace(uint* cv, byte* block, byte blockLength, ulong counter, Blake3Flags flags)
         {
             uint* state = stackalloc uint[16];
             CompressInPlaceHelper(cv, block, blockLength, counter, flags, state);
         }
-        
+
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static void CompressXof(uint* cv, byte* block, byte blockLength, ulong counter, Blake3Flags flags, byte* output)
         {
             uint* state = stackalloc uint[16];
@@ -41,6 +43,7 @@ public unsafe partial class Blake3
             BinaryUtils.WriteUInt32LittleEndian(out32 + 15, state[15] ^ cv[7]);
         }
         
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static void HashMany(byte** inputs, Size64_T inputCount, Size_T blockCount, uint* key, ulong counter, bool incrementCounter, Blake3Flags flags, Blake3Flags flagsStart, Blake3Flags flagsEnd, byte* output)
         {
             uint* state = stackalloc uint[16];

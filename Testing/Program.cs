@@ -10,10 +10,26 @@ using PrySec.Security.MemoryProtection.Universal;
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using PrySec.Core.HwPrimitives;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 using Testing;
+
+unsafe
+{
+    ulong* ez = (ulong*)NativeMemory.AlignedAlloc(sizeof(ulong) * 4, 32);
+    BinaryUtils.WriteUInt64BigEndian(ez + 0, 0x0D0C0F0E09080B0AuL);
+    BinaryUtils.WriteUInt64BigEndian(ez + 1, 0x0504070601000302uL);
+    BinaryUtils.WriteUInt64BigEndian(ez + 2, 0x0D0C0F0E09080B0AuL);
+    BinaryUtils.WriteUInt64BigEndian(ez + 3, 0x0504070601000302uL);
+    Vector256<uint> vEz = *(Vector256<uint>*)ez;
+    Vector256<uint> vNotEz = Avx.LoadAlignedVector256((uint*)ez);
+    Vector256<uint> test = Avx2.Xor(vEz, vNotEz);
+    Console.WriteLine();
+}
+
+return;
 
 const uint WARMUP = 1_000;
 const uint ITERATIONS = 2_000;
