@@ -12,25 +12,44 @@ public unsafe partial class Blake3
     {
         public static int SimdDegree => 8;
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CompressInPlace(uint* cv, byte* block, byte blockLength, ulong counter, Blake3Flags flags)
         {
-            
+            // TODO: use Sse41 or Sse2 intrinsics for the remaining inputs
+            Blake3HwIntrinsicsDefault.CompressInPlace(cv, block, blockLength, counter, flags);
         }
-        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CompressXof(uint* cv, byte* block, byte blockLength, ulong counter, Blake3Flags flags, byte* output)
         {
-            
+            // TODO: use Sse41 or Sse2 intrinsics for the remaining inputs
+            Blake3HwIntrinsicsDefault.CompressXof(cv, block, blockLength, counter, flags, output);
         }
         
         public static void HashMany(byte** inputs, Size64_T inputCount, Size_T blockCount, uint* key, ulong counter, bool incrementCounter, Blake3Flags flags, Blake3Flags flagsStart, Blake3Flags flagsEnd, byte* output)
         {
-            
+            while (inputCount >= SimdDegree)
+            {
+                Hash8Avx2(inputs, blockCount, key, counter, incrementCounter, flags, flagsStart, flagsEnd, output);
+                if (incrementCounter)
+                {
+                    counter += (uint)SimdDegree;
+                }
+                inputs += SimdDegree;
+                inputCount -= SimdDegree;
+                output += (SimdDegree * BLAKE3_BLOCK_LEN);
+            }
+            // TODO: use Sse41 intrinsics for the remaining inputs
+            Blake3HwIntrinsicsDefault.HashMany(inputs, inputCount, blockCount, key, counter, incrementCounter, flags, flagsStart, flagsEnd, output);
         }
 
         #region private methods
-        
+
+        const int VECTOR_SIZE = 8 * sizeof(uint);
+
         private static readonly Vector256<byte> _rot8Data;
         private static readonly Vector256<byte> _rot16Data;
+        private static readonly Vector256<int> _ctrAdd0Data;
 
         static Blake3HwIntrinsicsAvx2()
         {
@@ -46,25 +65,31 @@ public unsafe partial class Blake3
             BinaryUtils.WriteUInt64BigEndian(buf + 2, 0x0D0C0F0E09080B0AuL);
             BinaryUtils.WriteUInt64BigEndian(buf + 3, 0x0504070601000302uL);
             _rot16Data = Avx.LoadVector256((byte*)buf);
+
+            BinaryUtils.WriteUInt64BigEndian(buf + 0, 0x0000000700000006uL);
+            BinaryUtils.WriteUInt64BigEndian(buf + 0, 0x0000000500000004uL);
+            BinaryUtils.WriteUInt64BigEndian(buf + 0, 0x0000000300000002uL);
+            BinaryUtils.WriteUInt64BigEndian(buf + 0, 0x0000000100000000uL);
+            _ctrAdd0Data = Avx.LoadVector256((int*)buf);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         private static Vector256<uint> Rot16(Vector256<uint> x) => 
             Avx2.Shuffle(x.As<uint, byte>(), _rot16Data).As<byte, uint>();
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         private static Vector256<uint> Rot12(Vector256<uint> x) => 
             Avx2.Or(Avx2.ShiftRightLogical(x, 12), Avx2.ShiftLeftLogical(x, 32 - 12));
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         private static Vector256<uint> Rot8(Vector256<uint> x) =>
             Avx2.Shuffle(x.As<uint, byte>(), _rot8Data).As<byte, uint>();
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         private static Vector256<uint> Rot7(Vector256<uint> x) =>
             Avx2.Or(Avx2.ShiftRightLogical(x, 7), Avx2.ShiftLeftLogical(x, 32 - 7));
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         private static void RoundFunction(Vector256<uint>* v, Vector256<uint>* m, Size_T r)
         {
             v[0] = Avx2.Add(v[0], m[MSG_SCHEDULE[r, 0]]);
@@ -182,7 +207,7 @@ public unsafe partial class Blake3
             v[4] = Rot7(v[4]);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         private static void TransposeVectors(Vector256<uint>* vecs)
         {
             // Interleave 32-bit lanes. The low unpack is lanes 00/11/44/55, and the high
@@ -218,10 +243,9 @@ public unsafe partial class Blake3
             vecs[7] = Avx2.Permute2x128(abcd_37, efgh_37, 0x31).As<ulong, uint>();
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         private static void TransposeMessageVectors(byte** inputs, Size_T blockOffset, Vector256<uint>* output)
         {
-            const int VECTOR_SIZE = 8 * sizeof(uint);
             output[0] = Avx.LoadVector256((uint*)(inputs[0] + blockOffset + 0 * VECTOR_SIZE));
             output[1] = Avx.LoadVector256((uint*)(inputs[1] + blockOffset + 0 * VECTOR_SIZE));
             output[2] = Avx.LoadVector256((uint*)(inputs[2] + blockOffset + 0 * VECTOR_SIZE));
@@ -246,6 +270,88 @@ public unsafe partial class Blake3
             }
             TransposeVectors(output);
             TransposeVectors(output + 8);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        private static void LoadCounters(ulong counter, bool incrementCounter, Vector256<uint>* outLow, Vector256<uint>* outHigh)
+        {
+            Vector256<int> mask = Vector256.Create(-*(sbyte*)&incrementCounter);
+            Vector256<int> add1 = Avx2.And(mask, _ctrAdd0Data);
+            Vector256<int> l = Avx2.Add(Vector256.Create((int)counter), add1);
+            Vector256<int> carry = Avx2.CompareGreaterThan(
+                Avx2.Xor(add1, Vector256.Create(unchecked((int)0x80000000u))),
+                Avx2.Xor(l, Vector256.Create(unchecked((int)0x80000000u))));
+            Vector256<int> h = Avx2.Subtract(Vector256.Create((int)(counter >> 32)), carry);
+            *outLow = l.As<int, uint>();
+            *outHigh = h.As<int, uint>();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+        private static void Hash8Avx2(byte** inputs, Size_T blocks, uint* key, ulong counter, bool incrementCounter, Blake3Flags flags, Blake3Flags flagsStart, Blake3Flags flagsEnd, byte* output)
+        {
+            Vector256<uint>* v = stackalloc Vector256<uint>[16];
+            v[0] = Vector256.Create(key[0]);
+            v[1] = Vector256.Create(key[1]);
+            v[2] = Vector256.Create(key[2]);
+            v[3] = Vector256.Create(key[3]);
+            v[4] = Vector256.Create(key[4]);
+            v[5] = Vector256.Create(key[5]);
+            v[6] = Vector256.Create(key[6]);
+            v[7] = Vector256.Create(key[7]);
+
+            Vector256<uint> counterLowVector, counterHighVector;
+            LoadCounters(counter, incrementCounter, &counterLowVector, &counterHighVector);
+            Blake3Flags blockFlags = flags | flagsStart;
+            
+            Vector256<uint>* messageVectors = stackalloc Vector256<uint>[16];
+            Vector256<uint> blockLengthVector = Vector256.Create((uint)BLAKE3_BLOCK_LEN);
+
+            for (Size_T block = 0; block < blocks; block++)
+            {
+                if (block + 1 == blocks)
+                {
+                    blockFlags |= flagsEnd;
+                }
+                Vector256<uint> blockFlagsVector = Vector256.Create((uint)blockFlags);
+                TransposeMessageVectors(inputs, block * BLAKE3_BLOCK_LEN, messageVectors);
+                v[8] = Vector256.Create(IV[0]);
+                v[9] = Vector256.Create(IV[1]);
+                v[10] = Vector256.Create(IV[2]);
+                v[11] = Vector256.Create(IV[3]);
+                v[12] = counterLowVector;
+                v[13] = counterHighVector;
+                v[14] = blockLengthVector;
+                v[15] = blockFlagsVector;
+
+                RoundFunction(v, messageVectors, 0);
+                RoundFunction(v, messageVectors, 1);
+                RoundFunction(v, messageVectors, 2);
+                RoundFunction(v, messageVectors, 3);
+                RoundFunction(v, messageVectors, 4);
+                RoundFunction(v, messageVectors, 5);
+                RoundFunction(v, messageVectors, 6);
+
+                v[0] = Avx2.Xor(v[0], v[8]);
+                v[1] = Avx2.Xor(v[1], v[9]);
+                v[2] = Avx2.Xor(v[2], v[10]);
+                v[3] = Avx2.Xor(v[3], v[11]);
+                v[4] = Avx2.Xor(v[4], v[12]);
+                v[5] = Avx2.Xor(v[5], v[13]);
+                v[6] = Avx2.Xor(v[6], v[14]);
+                v[7] = Avx2.Xor(v[7], v[15]);
+
+                blockFlags = flags;
+            }
+
+            TransposeVectors(v);
+            Avx.Store(output + (0 * VECTOR_SIZE), v[0].AsByte());
+            Avx.Store(output + (1 * VECTOR_SIZE), v[1].AsByte());
+            Avx.Store(output + (2 * VECTOR_SIZE), v[2].AsByte());
+            Avx.Store(output + (3 * VECTOR_SIZE), v[3].AsByte());
+            Avx.Store(output + (4 * VECTOR_SIZE), v[4].AsByte());
+            Avx.Store(output + (5 * VECTOR_SIZE), v[5].AsByte());
+            Avx.Store(output + (6 * VECTOR_SIZE), v[6].AsByte());
+            Avx.Store(output + (7 * VECTOR_SIZE), v[7].AsByte());
         }
         #endregion private methods
     }

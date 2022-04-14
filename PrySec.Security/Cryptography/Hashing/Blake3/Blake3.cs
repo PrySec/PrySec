@@ -1,4 +1,5 @@
 ﻿using PrySec.Core.Memory;
+using PrySec.Core.Memory.MemoryManagement;
 using PrySec.Core.NativeTypes;
 using PrySec.Security.MemoryProtection.Universal;
 using System;

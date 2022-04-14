@@ -73,13 +73,13 @@ public unsafe partial class Blake3
         BLAKE3_SIMD_DEGREE = 0 switch
         {
             // Uncomment once we have support for AVX512 in the .net runtime
-            //_ when Avx512.IsSupported => 16,
+            //_ when Avx512.IsSupported => 16,                                                  // 16
+            _ when Avx2.IsSupported => UseSimdImplementation<Blake3HwIntrinsicsAvx2>(),         // 8
             // TODO:
-            //_ when Avx2.IsSupported => 8,
-            //_ when Sse41.IsSupported => 4,
-            //_ when Sse2.IsSupported => 4,
-            //_ when AdvSimd.IsSupported => 4,
-            _ => UseSimdImplementation<Blake3HwIntrinsicsDefault>()
+            //_ when Sse41.IsSupported => UseSimdImplementation<Blake3HwIntrinsicsSse41>(),     // 4
+            //_ when Sse2.IsSupported => UseSimdImplementation<Blake3HwIntrinsicsSse2>(),       // 4
+            //_ when AdvSimd.IsSupported => UseSimdImplementation<Blake3HwIntrinsicsAdvSimd>(), // 4
+            _ => UseSimdImplementation<Blake3HwIntrinsicsDefault>()                             // 1
         };
     }
 

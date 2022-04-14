@@ -270,7 +270,7 @@ public unsafe partial class Blake3
         [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         private static void MergeCvStack(Blake3Context* self, ulong totalLength)
         {
-            Size_T postMergeStackLength = BinaryUtils.PopulationCount(totalLength);
+            int postMergeStackLength = BinaryUtils.PopulationCount(totalLength);
             while (self->CvStackLength > postMergeStackLength)
             {
                 // TODO: we allocate memory for Output_T here just to copy it's contents onto the stack after compression.

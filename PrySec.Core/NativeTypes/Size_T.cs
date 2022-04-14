@@ -31,4 +31,16 @@ public readonly struct Size_T
     public static explicit operator byte(Size_T size) => (byte)size.value;
 
     public static Size_T operator *(Size_T a, Size_T b) => new(a.value * b.value);
+
+    public static bool operator <(Size_T a, Size_T b) => a.value < b.value;
+
+    public static bool operator >(Size_T a, Size_T b) => a.value > b.value;
+
+    public static bool operator ==(Size_T a, Size_T b) => a.value == b.value;
+
+    public static bool operator !=(Size_T a, Size_T b) => a.value != b.value;
+
+    public override bool Equals(object? obj) => obj is Size_T t && value.Equals(t.value);
+
+    public override int GetHashCode() => value.GetHashCode();
 }

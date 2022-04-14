@@ -15,24 +15,20 @@ using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 using Testing;
+using System.Text;
+/*
+const string test = "asdf";
+MemoryManager.UseImplementation<AllocationTracker<NativeMemoryManager>>();
+Blake3 blake = new();
+string result = blake.ComputeHash(test);
+Console.WriteLine(result);
+AllocationSnapshot? leaks = MemoryManager.GetAllocationSnapshot();
+Console.WriteLine(leaks);
 
-unsafe
-{
-    ulong* ez = (ulong*)NativeMemory.AlignedAlloc(sizeof(ulong) * 4, 32);
-    BinaryUtils.WriteUInt64BigEndian(ez + 0, 0x0D0C0F0E09080B0AuL);
-    BinaryUtils.WriteUInt64BigEndian(ez + 1, 0x0504070601000302uL);
-    BinaryUtils.WriteUInt64BigEndian(ez + 2, 0x0D0C0F0E09080B0AuL);
-    BinaryUtils.WriteUInt64BigEndian(ez + 3, 0x0504070601000302uL);
-    Vector256<uint> vEz = *(Vector256<uint>*)ez;
-    Vector256<uint> vNotEz = Avx.LoadAlignedVector256((uint*)ez);
-    Vector256<uint> test = Avx2.Xor(vEz, vNotEz);
-    Console.WriteLine();
-}
+return;*/
 
-return;
-
-const uint WARMUP = 1_000;
-const uint ITERATIONS = 2_000;
+const uint WARMUP = 50_000;
+const uint ITERATIONS = 100_000;
 
 unsafe
 {
@@ -47,21 +43,22 @@ unsafe
         // setup
 
         // warmup
-        Blake3 b = new Blake3();
+        Blake3 b = new();
         for (uint i = 0; i < WARMUP; i++)
         {
-            using var _ = b.ComputeHash<byte, DeterministicSpan<byte>, DeterministicSpan<byte>>(ref span);
+            using DeterministicSpan<byte> _ = b.ComputeHash<byte, DeterministicSpan<byte>, DeterministicSpan<byte>>(ref span);
         }
         Stopwatch stopwatch = new();
         stopwatch.Start();
         for (uint i = 0; i < ITERATIONS; i++)
         {
-            using var _ = b.ComputeHash<byte, DeterministicSpan<byte>, DeterministicSpan<byte>>(ref span);
+            using DeterministicSpan<byte> _ = b.ComputeHash<byte, DeterministicSpan<byte>, DeterministicSpan<byte>>(ref span);
         }
         stopwatch.Stop();
         Console.WriteLine(stopwatch.Elapsed);
         Console.WriteLine($"That's {stopwatch.ElapsedMilliseconds / (double)ITERATIONS} ms / it");
         Console.WriteLine($"Or {(double)ITERATIONS / stopwatch.ElapsedMilliseconds * 1000} it / s");
+        Console.WriteLine($"Or {ITERATIONS * Encoding.UTF8.GetByteCount(str) / 1_000_000 / stopwatch.Elapsed.TotalSeconds} GB / s");
         Console.WriteLine();
     }
 }

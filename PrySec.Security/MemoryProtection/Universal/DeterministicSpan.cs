@@ -67,7 +67,6 @@ public unsafe readonly struct DeterministicSpan<T> : IProtectedMemoryFactory<Det
             {
                 MemoryManager.Free(BasePointer);
             }
-            GC.SuppressFinalize(this);
         }
     }
 
