@@ -29,7 +29,7 @@ Stop people from prying around in your process's memory!
     - [x] SHA-512
     - [ ] SHA-3
   - [x] BLAKE2
-  - [ ] BLAKE3
+  - [x] BLAKE3
   - [ ] AES-256
   - [ ] Scrypt
 - Unified high and low level interfaces for all cryptographic functions  for protected and unprotected memory alike.
