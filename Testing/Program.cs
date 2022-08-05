@@ -16,16 +16,14 @@ using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 using Testing;
 using System.Text;
-/*
+
 const string test = "asdf";
-MemoryManager.UseImplementation<AllocationTracker<NativeMemoryManager>>();
+MemoryManager.UseImplementation<NativeMemoryManager>();
 Blake3 blake = new();
 string result = blake.ComputeHash(test);
 Console.WriteLine(result);
-AllocationSnapshot? leaks = MemoryManager.GetAllocationSnapshot();
-Console.WriteLine(leaks);
 
-return;*/
+return;
 
 const uint WARMUP = 50_000;
 const uint ITERATIONS = 100_000;

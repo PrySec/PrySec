@@ -1,4 +1,5 @@
-﻿using PrySec.Core.HwPrimitives;
+﻿using PrySec.Core;
+using PrySec.Core.HwPrimitives;
 using PrySec.Core.Memory.MemoryManagement;
 using PrySec.Core.NativeTypes;
 using System.Runtime.CompilerServices;
@@ -13,6 +14,7 @@ public unsafe partial class Blake3
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static void CompressInPlace(uint* cv, byte* block, byte blockLength, ulong counter, Blake3Flags flags)
         {
+            // TODO: move allocation to caller.
             uint* state = stackalloc uint[16];
             CompressInPlaceHelper(cv, block, blockLength, counter, flags, state);
         }
@@ -20,6 +22,7 @@ public unsafe partial class Blake3
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static void CompressXof(uint* cv, byte* block, byte blockLength, ulong counter, Blake3Flags flags, byte* output)
         {
+            // TODO: move allocation to caller.
             uint* state = stackalloc uint[16];
             CompressPre(state, cv, block, blockLength, counter, flags);
 
@@ -163,6 +166,7 @@ public unsafe partial class Blake3
                 RoundFunction(state, blockWords, 4, scheduleBase);
                 RoundFunction(state, blockWords, 5, scheduleBase);
                 RoundFunction(state, blockWords, 6, scheduleBase);
+                DebugUtils.PrintBuffer(state, 16 * sizeof(uint));
             }
         }
 

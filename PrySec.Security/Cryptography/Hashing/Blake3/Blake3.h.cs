@@ -1,4 +1,5 @@
 ﻿using PrySec.Core.NativeTypes;
+using System;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
@@ -66,17 +67,22 @@ public unsafe partial class Blake3
 
     static Blake3()
     {
-        // TODO: actually check for SIMD support here.
-        MAX_SIMD_DEGREE = 8;
-        MAX_SIMD_DEGREE_OR_2 = MAX_SIMD_DEGREE > 2 ? MAX_SIMD_DEGREE : 2;
+        MAX_SIMD_DEGREE = RuntimeInformation.OSArchitecture switch
+        {
+            Architecture.X86 or Architecture.X64 => 8, // actually 16 for AVX-512
+            Architecture.Arm64 => 4,
+            _ => MAX_SIMD_DEGREE = 1,
+        };
+        
+        MAX_SIMD_DEGREE_OR_2 = Math.Max(MAX_SIMD_DEGREE, 2);
 
         BLAKE3_SIMD_DEGREE = 0 switch
         {
             // Uncomment once we have support for AVX512 in the .net runtime
             //_ when Avx512.IsSupported => 16,                                                  // 16
-            _ when Avx2.IsSupported => UseSimdImplementation<Blake3HwIntrinsicsAvx2>(),         // 8
+            //_ when Avx2.IsSupported => UseSimdImplementation<Blake3HwIntrinsicsAvx2>(),         // 8
+            //_ when Sse41.IsSupported => UseSimdImplementation<Blake3HwIntrinsicsSse41>(),       // 4
             // TODO:
-            //_ when Sse41.IsSupported => UseSimdImplementation<Blake3HwIntrinsicsSse41>(),     // 4
             //_ when Sse2.IsSupported => UseSimdImplementation<Blake3HwIntrinsicsSse2>(),       // 4
             //_ when AdvSimd.IsSupported => UseSimdImplementation<Blake3HwIntrinsicsAdvSimd>(), // 4
             _ => UseSimdImplementation<Blake3HwIntrinsicsDefault>()                             // 1

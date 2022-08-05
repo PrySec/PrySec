@@ -21,4 +21,6 @@ public readonly struct Size64_T
     public static explicit operator Size_T(Size64_T size) => (nuint)size.value;
     
     public static explicit operator Size64_T(Size_T size) => (ulong)size;
+
+    public static Size64_T operator -(Size64_T size, int i) => new(size.value - (ulong)i);
 }

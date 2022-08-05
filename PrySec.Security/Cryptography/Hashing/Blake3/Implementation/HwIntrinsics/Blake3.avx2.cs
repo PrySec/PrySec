@@ -13,20 +13,15 @@ public unsafe partial class Blake3
         public static int SimdDegree => 8;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void CompressInPlace(uint* cv, byte* block, byte blockLength, ulong counter, Blake3Flags flags)
-        {
-            // TODO: use Sse41 or Sse2 intrinsics for the remaining inputs
-            Blake3HwIntrinsicsDefault.CompressInPlace(cv, block, blockLength, counter, flags);
-        }
+        public static void CompressInPlace(uint* cv, byte* block, byte blockLength, ulong counter, Blake3Flags flags) => 
+            Blake3HwIntrinsicsSse41.CompressInPlace(cv, block, blockLength, counter, flags);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void CompressXof(uint* cv, byte* block, byte blockLength, ulong counter, Blake3Flags flags, byte* output)
-        {
-            // TODO: use Sse41 or Sse2 intrinsics for the remaining inputs
-            Blake3HwIntrinsicsDefault.CompressXof(cv, block, blockLength, counter, flags, output);
-        }
-        
-        public static void HashMany(byte** inputs, Size64_T inputCount, Size_T blockCount, uint* key, ulong counter, bool incrementCounter, Blake3Flags flags, Blake3Flags flagsStart, Blake3Flags flagsEnd, byte* output)
+        public static void CompressXof(uint* cv, byte* block, byte blockLength, ulong counter, Blake3Flags flags, byte* output) => 
+            Blake3HwIntrinsicsSse41.CompressXof(cv, block, blockLength, counter, flags, output);
+
+        public static void HashMany(byte** inputs, Size64_T inputCount, Size_T blockCount, uint* key, ulong counter, 
+            bool incrementCounter, Blake3Flags flags, Blake3Flags flagsStart, Blake3Flags flagsEnd, byte* output)
         {
             while (inputCount >= SimdDegree)
             {
@@ -39,8 +34,7 @@ public unsafe partial class Blake3
                 inputCount -= SimdDegree;
                 output += (SimdDegree * BLAKE3_BLOCK_LEN);
             }
-            // TODO: use Sse41 intrinsics for the remaining inputs
-            Blake3HwIntrinsicsDefault.HashMany(inputs, inputCount, blockCount, key, counter, incrementCounter, flags, flagsStart, flagsEnd, output);
+            Blake3HwIntrinsicsSse41.HashMany(inputs, inputCount, blockCount, key, counter, incrementCounter, flags, flagsStart, flagsEnd, output);
         }
 
         #region private methods
@@ -73,23 +67,23 @@ public unsafe partial class Blake3
             _ctrAdd0Data = Avx.LoadVector256((int*)buf);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector256<uint> Rot16(Vector256<uint> x) => 
             Avx2.Shuffle(x.As<uint, byte>(), _rot16Data).As<byte, uint>();
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector256<uint> Rot12(Vector256<uint> x) => 
             Avx2.Or(Avx2.ShiftRightLogical(x, 12), Avx2.ShiftLeftLogical(x, 32 - 12));
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector256<uint> Rot8(Vector256<uint> x) =>
             Avx2.Shuffle(x.As<uint, byte>(), _rot8Data).As<byte, uint>();
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector256<uint> Rot7(Vector256<uint> x) =>
             Avx2.Or(Avx2.ShiftRightLogical(x, 7), Avx2.ShiftLeftLogical(x, 32 - 7));
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void RoundFunction(Vector256<uint>* v, Vector256<uint>* m, Size_T r)
         {
             v[0] = Avx2.Add(v[0], m[MSG_SCHEDULE[r, 0]]);
@@ -207,7 +201,7 @@ public unsafe partial class Blake3
             v[4] = Rot7(v[4]);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void TransposeVectors(Vector256<uint>* vecs)
         {
             // Interleave 32-bit lanes. The low unpack is lanes 00/11/44/55, and the high
@@ -243,7 +237,7 @@ public unsafe partial class Blake3
             vecs[7] = Avx2.Permute2x128(abcd_37, efgh_37, 0x31).As<ulong, uint>();
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void TransposeMessageVectors(byte** inputs, Size_T blockOffset, Vector256<uint>* output)
         {
             output[0] = Avx.LoadVector256((uint*)(inputs[0] + blockOffset + 0 * VECTOR_SIZE));
@@ -272,7 +266,7 @@ public unsafe partial class Blake3
             TransposeVectors(output + 8);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void LoadCounters(ulong counter, bool incrementCounter, Vector256<uint>* outLow, Vector256<uint>* outHigh)
         {
             Vector256<int> mask = Vector256.Create(-*(sbyte*)&incrementCounter);
@@ -286,8 +280,8 @@ public unsafe partial class Blake3
             *outHigh = h.As<int, uint>();
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-        private static void Hash8Avx2(byte** inputs, Size_T blocks, uint* key, ulong counter, bool incrementCounter, Blake3Flags flags, Blake3Flags flagsStart, Blake3Flags flagsEnd, byte* output)
+        private static void Hash8Avx2(byte** inputs, Size_T blocks, uint* key, ulong counter, 
+            bool incrementCounter, Blake3Flags flags, Blake3Flags flagsStart, Blake3Flags flagsEnd, byte* output)
         {
             Vector256<uint>* v = stackalloc Vector256<uint>[16];
             v[0] = Vector256.Create(key[0]);
