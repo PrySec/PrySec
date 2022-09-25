@@ -3,16 +3,10 @@ using PrySec.Core.HwPrimitives;
 using PrySec.Core.Memory.MemoryManagement;
 using PrySec.Core.NativeTypes;
 using System;
-using System.Collections.Generic;
-using System.Diagnostics.Metrics;
-using System.Linq;
-using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-using System.Text;
-using System.Threading.Tasks;
-using static System.Reflection.Metadata.BlobBuilder;
 
 namespace PrySec.Security.Cryptography.Hashing.Blake3;
 
@@ -20,20 +14,18 @@ public unsafe partial class Blake3
 {
     private class Blake3HwIntrinsicsSse41 : IBlake3Implementation
     {
-        public static int SimdDegree => 4;
+        public static uint SimdDegree => 4;
 
-        public static void CompressInPlace(uint* cv, byte* block, byte blockLength, ulong counter, Blake3Flags flags)
+        public static void CompressInPlace(uint* cv, byte* block, uint blockLength, ulong counter, Blake3Flags flags)
         {
-            // TODO: move allocation to caller.
             Vector128<uint>* rows = stackalloc Vector128<uint>[4];
             CompressPre(rows, cv, block, blockLength, counter, flags);
             Sse2.Store(&cv[0], Sse2.Xor(rows[0], rows[2]));
             Sse2.Store(&cv[4], Sse2.Xor(rows[1], rows[3]));
         }
 
-        public static void CompressXof(uint* cv, byte* block, byte blockLength, ulong counter, Blake3Flags flags, byte* output)
+        public static void CompressXof(uint* cv, byte* block, uint blockLength, ulong counter, Blake3Flags flags, byte* output)
         {
-            // TODO: move allocation to caller.
             Vector128<uint>* rows = stackalloc Vector128<uint>[4];
             CompressPre(rows, cv, block, blockLength, counter, flags);
             Sse2.Store((uint*)&output[0], Sse2.Xor(rows[0], rows[2]));
@@ -42,7 +34,7 @@ public unsafe partial class Blake3
             Sse2.Store((uint*)&output[48], Sse2.Xor(rows[3], Sse2.LoadVector128(&cv[4])));
         }
 
-        public static void HashMany(byte** inputs, Size64_T inputCount, Size_T blockCount, uint* key, ulong counter, 
+        public static void HashMany(byte** inputs, ulong inputCount, uint blockCount, uint* key, ulong counter, 
             bool incrementCounter, Blake3Flags flags, Blake3Flags flagsStart, Blake3Flags flagsEnd, byte* output)
         {
             while (inputCount >= SimdDegree)
@@ -81,22 +73,23 @@ public unsafe partial class Blake3
         static Blake3HwIntrinsicsSse41()
         {
             ulong* buf = stackalloc ulong[2];
-            
-            BinaryUtils.WriteUInt64BigEndian(buf + 0, 0x0C0F0E0D080B0A09uL);
-            BinaryUtils.WriteUInt64BigEndian(buf + 1, 0x0407060500030201uL);
+
+            // write and read in whatever endianness we have
+            buf[0] = 0x0407060500030201uL;
+            buf[1] = 0x0C0F0E0D080B0A09uL;
             _rot8Data = Sse2.LoadVector128((byte*)buf);
 
-            BinaryUtils.WriteUInt64BigEndian(buf + 0, 0x0D0C0F0E09080B0AuL);
-            BinaryUtils.WriteUInt64BigEndian(buf + 1, 0x0504070601000302uL);
+            buf[0] = 0x0504070601000302uL;
+            buf[1] = 0x0D0C0F0E09080B0AuL;
             _rot16Data = Sse2.LoadVector128((byte*)buf);
 
-            BinaryUtils.WriteUInt64BigEndian(buf + 0, 0x0000000300000002uL);
-            BinaryUtils.WriteUInt64BigEndian(buf + 0, 0x0000000100000000uL);
+            buf[0] = 0x0000000100000000uL;
+            buf[1] = 0x0000000300000002uL;
             _ctrAdd0Data = Sse2.LoadVector128((int*)buf);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Vector128<uint> Rot16(Vector128<uint> x) =>
+        private static Vector128<uint> Rot16(Vector128<uint> x) => 
             Ssse3.Shuffle(x.As<uint, byte>(), _rot16Data).As<byte, uint>();
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -158,6 +151,18 @@ public unsafe partial class Blake3
             *row2 = Sse2.Shuffle(*row2, AvxPrimitives._MM_SHUFFLE(2, 1, 0, 3));
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="rows"></param>
+        /// <param name="cv"></param>
+        /// <param name="block"></param>
+        /// <param name="blockLength"></param>
+        /// <param name="counter"></param>
+        /// <param name="flags"></param>
+        /// <remarks>
+        /// WORKS
+        /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void CompressPre(Vector128<uint>* rows, uint* cv, byte* block, uint blockLength, ulong counter, Blake3Flags flags)
         {
@@ -172,8 +177,6 @@ public unsafe partial class Blake3
             Vector128<uint> m3 = Sse2.LoadVector128(&block[VECTOR_SIZE * 3]).AsUInt32();
 
             Vector128<uint> t0, t1, t2, t3, tt;
-
-            // *input values are fine here*
 
             // Round 1. The first round permutes the message words from the original
             // input order, into the groups that get mixed in parallel.
@@ -193,8 +196,6 @@ public unsafe partial class Blake3
             m1 = t1;
             m2 = t2;
             m3 = t3;
-
-            // TODO: values after round 1 differ from Blake3HwIntrinsicsDefault after round 1
 
             // Round 2. This round and all following rounds apply a fixed permutation
             // to the message words from the round before.
@@ -330,12 +331,10 @@ public unsafe partial class Blake3
             t3 = Sse2.Shuffle(tt, AvxPrimitives._MM_SHUFFLE(0, 1, 3, 2));
             G2(&rows[0], &rows[1], &rows[2], &rows[3], t3);
             Undiagonalize(&rows[0], &rows[2], &rows[3]);
-
-            DebugUtils.PrintBuffer(rows, 4 * VECTOR_SIZE);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void RoundFunction(Vector128<uint>* v, Vector128<uint>* m, Size_T r)
+        private static void RoundFunction(Vector128<uint>* v, Vector128<uint>* m, uint r)
         {
             v[0] = Sse2.Add(v[0], m[MSG_SCHEDULE[r, 0]]);
             v[1] = Sse2.Add(v[1], m[MSG_SCHEDULE[r, 2]]);
@@ -476,7 +475,7 @@ public unsafe partial class Blake3
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void TransposeMessageVectors(byte** inputs, Size_T blockOffset, Vector128<uint>* output)
+        private static void TransposeMessageVectors(byte** inputs, uint blockOffset, Vector128<uint>* output)
         {
             output[0] = Sse2.LoadVector128((uint*)&inputs[0][blockOffset + 0 * VECTOR_SIZE]);
             output[1] = Sse2.LoadVector128((uint*)&inputs[1][blockOffset + 0 * VECTOR_SIZE]);
@@ -522,7 +521,7 @@ public unsafe partial class Blake3
         private static void Hash4Sse41(byte** inputs, Size_T blocks, uint* key, ulong counter,
             bool incrementCounter, Blake3Flags flags, Blake3Flags flagsStart, Blake3Flags flagsEnd, byte* output) 
         {
-            Vector128<uint>* v = stackalloc Vector128<uint>[8];
+            Vector128<uint>* v = stackalloc Vector128<uint>[16];
             v[0] = Vector128.Create(key[0]);
             v[1] = Vector128.Create(key[1]);
             v[2] = Vector128.Create(key[2]);
@@ -537,9 +536,9 @@ public unsafe partial class Blake3
             Blake3Flags blockFlags = flags | flagsStart;
 
             Vector128<uint>* messageVectors = stackalloc Vector128<uint>[16];
-            Vector128<uint> blockLengthVector = Vector128.Create((uint)BLAKE3_BLOCK_LEN);
+            Vector128<uint> blockLengthVector = Vector128.Create(BLAKE3_BLOCK_LEN);
 
-            for (int block = 0; block < blocks; block++)
+            for (uint block = 0u; block < blocks; block++)
             {
                 if (block + 1 == blocks)
                 {

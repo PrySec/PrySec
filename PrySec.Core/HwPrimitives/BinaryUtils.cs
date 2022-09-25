@@ -81,7 +81,7 @@ public static unsafe partial class BinaryUtils
     /// Finds the largest power of two less than or equal to <paramref name="value"/>.
     /// </summary>
     /// <remarks>As a special case, returns <c>1</c> when <paramref name="value"/> is <c>0</c>.</remarks>
-    [MethodImpl(MethodImplOptions.AggressiveInlining| MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ulong RoundDownToPowerOf2(ulong value)
     {
         int index;

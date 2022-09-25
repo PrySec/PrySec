@@ -10,17 +10,17 @@ public unsafe partial class Blake3
 {
     private class Blake3HwIntrinsicsAvx2 : IBlake3Implementation
     {
-        public static int SimdDegree => 8;
+        public static uint SimdDegree => 8u;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void CompressInPlace(uint* cv, byte* block, byte blockLength, ulong counter, Blake3Flags flags) => 
+        public static void CompressInPlace(uint* cv, byte* block, uint blockLength, ulong counter, Blake3Flags flags) => 
             Blake3HwIntrinsicsSse41.CompressInPlace(cv, block, blockLength, counter, flags);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void CompressXof(uint* cv, byte* block, byte blockLength, ulong counter, Blake3Flags flags, byte* output) => 
+        public static void CompressXof(uint* cv, byte* block, uint blockLength, ulong counter, Blake3Flags flags, byte* output) => 
             Blake3HwIntrinsicsSse41.CompressXof(cv, block, blockLength, counter, flags, output);
 
-        public static void HashMany(byte** inputs, Size64_T inputCount, Size_T blockCount, uint* key, ulong counter, 
+        public static void HashMany(byte** inputs, ulong inputCount, uint blockCount, uint* key, ulong counter, 
             bool incrementCounter, Blake3Flags flags, Blake3Flags flagsStart, Blake3Flags flagsEnd, byte* output)
         {
             while (inputCount >= SimdDegree)
@@ -48,22 +48,22 @@ public unsafe partial class Blake3
         static Blake3HwIntrinsicsAvx2()
         {
             ulong* buf = stackalloc ulong[4];
-            BinaryUtils.WriteUInt64BigEndian(buf + 0, 0x0C0F0E0D080B0A09uL);
-            BinaryUtils.WriteUInt64BigEndian(buf + 1, 0x0407060500030201uL);
-            BinaryUtils.WriteUInt64BigEndian(buf + 2, 0x0C0F0E0D080B0A09uL);
-            BinaryUtils.WriteUInt64BigEndian(buf + 3, 0x0407060500030201uL);
+            buf[0] = 0x0407060500030201uL;
+            buf[1] = 0x0C0F0E0D080B0A09uL;
+            buf[2] = 0x0407060500030201uL;
+            buf[3] = 0x0C0F0E0D080B0A09uL;
             _rot8Data = Avx.LoadVector256((byte*)buf);
             
-            BinaryUtils.WriteUInt64BigEndian(buf + 0, 0x0D0C0F0E09080B0AuL);
-            BinaryUtils.WriteUInt64BigEndian(buf + 1, 0x0504070601000302uL);
-            BinaryUtils.WriteUInt64BigEndian(buf + 2, 0x0D0C0F0E09080B0AuL);
-            BinaryUtils.WriteUInt64BigEndian(buf + 3, 0x0504070601000302uL);
+            buf[0] = 0x0504070601000302uL;
+            buf[1] = 0x0D0C0F0E09080B0AuL;
+            buf[2] = 0x0504070601000302uL;
+            buf[3] = 0x0D0C0F0E09080B0AuL;
             _rot16Data = Avx.LoadVector256((byte*)buf);
 
-            BinaryUtils.WriteUInt64BigEndian(buf + 0, 0x0000000700000006uL);
-            BinaryUtils.WriteUInt64BigEndian(buf + 0, 0x0000000500000004uL);
-            BinaryUtils.WriteUInt64BigEndian(buf + 0, 0x0000000300000002uL);
-            BinaryUtils.WriteUInt64BigEndian(buf + 0, 0x0000000100000000uL);
+            buf[0] = 0x0000000100000000uL;
+            buf[1] = 0x0000000300000002uL;
+            buf[2] = 0x0000000500000004uL;
+            buf[3] = 0x0000000700000006uL;
             _ctrAdd0Data = Avx.LoadVector256((int*)buf);
         }
 
@@ -238,7 +238,7 @@ public unsafe partial class Blake3
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void TransposeMessageVectors(byte** inputs, Size_T blockOffset, Vector256<uint>* output)
+        private static void TransposeMessageVectors(byte** inputs, uint blockOffset, Vector256<uint>* output)
         {
             output[0] = Avx.LoadVector256((uint*)(inputs[0] + blockOffset + 0 * VECTOR_SIZE));
             output[1] = Avx.LoadVector256((uint*)(inputs[1] + blockOffset + 0 * VECTOR_SIZE));
@@ -300,7 +300,7 @@ public unsafe partial class Blake3
             Vector256<uint>* messageVectors = stackalloc Vector256<uint>[16];
             Vector256<uint> blockLengthVector = Vector256.Create((uint)BLAKE3_BLOCK_LEN);
 
-            for (Size_T block = 0; block < blocks; block++)
+            for (uint block = 0; block < blocks; block++)
             {
                 if (block + 1 == blocks)
                 {

@@ -1,5 +1,6 @@
 ﻿using PrySec.Core.NativeTypes;
 using System;
+using System.Collections;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
@@ -26,12 +27,12 @@ public unsafe partial class Blake3
     /// in bytes
     /// </summary>
     private const int BLAKE3_OUT_LEN = 32;
-    private const int BLAKE3_BLOCK_LEN = 64;
-    private const int BLAKE3_CHUNK_LEN = 1024;
+    private const uint BLAKE3_BLOCK_LEN = 64u;
+    private const uint BLAKE3_CHUNK_LEN = 1024u;
     private const int BLAKE3_MAX_DEPTH = 54;
     private static int MAX_SIMD_DEGREE { get; }
     private static int MAX_SIMD_DEGREE_OR_2 { get; }
-    private static int BLAKE3_SIMD_DEGREE { get; }
+    private static uint BLAKE3_SIMD_DEGREE { get; }
 
     private enum Blake3Flags : byte
     {
@@ -61,9 +62,9 @@ public unsafe partial class Blake3
         {11, 15, 5, 0, 1, 9, 8, 6, 14, 10, 2, 12, 3, 4, 7, 13},
     };
 
-    private static delegate*<uint*, byte*, byte, ulong, Blake3Flags, void> _compressInPlaceImpl;
-    private static delegate*<byte**, Size64_T, Size_T, uint*, ulong, bool, Blake3Flags, Blake3Flags, Blake3Flags, byte*, void> _hashManyImpl;
-    private static delegate*<uint*, byte*, byte, ulong, Blake3Flags, byte*, void> _compressXofImpl;
+    private static delegate*<uint*, byte*, uint, ulong, Blake3Flags, void> _compressInPlaceImpl;
+    private static delegate*<byte**, ulong, uint, uint*, ulong, bool, Blake3Flags, Blake3Flags, Blake3Flags, byte*, void> _hashManyImpl;
+    private static delegate*<uint*, byte*, uint, ulong, Blake3Flags, byte*, void> _compressXofImpl;
 
     static Blake3()
     {
@@ -80,8 +81,8 @@ public unsafe partial class Blake3
         {
             // Uncomment once we have support for AVX512 in the .net runtime
             //_ when Avx512.IsSupported => 16,                                                  // 16
-            //_ when Avx2.IsSupported => UseSimdImplementation<Blake3HwIntrinsicsAvx2>(),         // 8
-            //_ when Sse41.IsSupported => UseSimdImplementation<Blake3HwIntrinsicsSse41>(),       // 4
+            _ when Avx2.IsSupported => UseSimdImplementation<Blake3HwIntrinsicsAvx2>(),         // 8
+            _ when Sse41.IsSupported => UseSimdImplementation<Blake3HwIntrinsicsSse41>(),       // 4
             // TODO:
             //_ when Sse2.IsSupported => UseSimdImplementation<Blake3HwIntrinsicsSse2>(),       // 4
             //_ when AdvSimd.IsSupported => UseSimdImplementation<Blake3HwIntrinsicsAdvSimd>(), // 4
@@ -89,7 +90,7 @@ public unsafe partial class Blake3
         };
     }
 
-    private static int UseSimdImplementation<T>() where T : IBlake3Implementation
+    private static uint UseSimdImplementation<T>() where T : IBlake3Implementation
     {
         _compressInPlaceImpl = &T.CompressInPlace;
         _hashManyImpl = &T.HashMany;

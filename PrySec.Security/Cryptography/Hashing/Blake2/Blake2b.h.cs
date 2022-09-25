@@ -15,7 +15,7 @@ public unsafe partial class Blake2b
     /// <returns>The computed hash code.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public IUnmanaged<byte> ComputeHash<T>(ref IUnmanaged<T> input) where T : unmanaged =>
-        ComputeHash<T, IUnmanaged<T>, DeterministicSpan<byte>>(ref input, 64);
+        ComputeHash<T, IUnmanaged<T>, DeterministicMemory<byte>>(ref input, 64);
 
     /// <summary>
     /// Computes the hash value for the specified <paramref name="input"/>.

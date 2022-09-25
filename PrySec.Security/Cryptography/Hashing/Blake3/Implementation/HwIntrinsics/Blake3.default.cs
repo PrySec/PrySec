@@ -9,20 +9,18 @@ public unsafe partial class Blake3
 {
     private class Blake3HwIntrinsicsDefault : IBlake3Implementation
     {
-        public static int SimdDegree => 1;
+        public static uint SimdDegree => 1u;
 
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-        public static void CompressInPlace(uint* cv, byte* block, byte blockLength, ulong counter, Blake3Flags flags)
+        public static void CompressInPlace(uint* cv, byte* block, uint blockLength, ulong counter, Blake3Flags flags)
         {
-            // TODO: move allocation to caller.
             uint* state = stackalloc uint[16];
             CompressInPlaceHelper(cv, block, blockLength, counter, flags, state);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-        public static void CompressXof(uint* cv, byte* block, byte blockLength, ulong counter, Blake3Flags flags, byte* output)
+        public static void CompressXof(uint* cv, byte* block, uint blockLength, ulong counter, Blake3Flags flags, byte* output)
         {
-            // TODO: move allocation to caller.
             uint* state = stackalloc uint[16];
             CompressPre(state, cv, block, blockLength, counter, flags);
 
@@ -47,7 +45,7 @@ public unsafe partial class Blake3
         }
         
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-        public static void HashMany(byte** inputs, Size64_T inputCount, Size_T blockCount, uint* key, ulong counter, bool incrementCounter, Blake3Flags flags, Blake3Flags flagsStart, Blake3Flags flagsEnd, byte* output)
+        public static void HashMany(byte** inputs, ulong inputCount, uint blockCount, uint* key, ulong counter, bool incrementCounter, Blake3Flags flags, Blake3Flags flagsStart, Blake3Flags flagsEnd, byte* output)
         {
             uint* state = stackalloc uint[16];
             uint* cv = stackalloc uint[8];
@@ -67,8 +65,8 @@ public unsafe partial class Blake3
 
         #region private methods
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-        private static void CompressInPlaceHelper(uint* cv, byte* block, byte blockLength, ulong counter, Blake3Flags flags, uint* state)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void CompressInPlaceHelper(uint* cv, byte* block, uint blockLength, ulong counter, Blake3Flags flags, uint* state)
         {
             CompressPre(state, cv, block, blockLength, counter, flags);
 
@@ -82,10 +80,10 @@ public unsafe partial class Blake3
             cv[7] = state[7] ^ state[15];
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static uint RotateRight32(uint w, int c) => (w >> c) | (w << (32 - c));
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void G(uint* state, Size_T a, Size_T b, Size_T c, Size_T d, uint x, uint y)
         {
             state[a] = state[a] + state[b] + x;
@@ -98,7 +96,7 @@ public unsafe partial class Blake3
             state[b] = RotateRight32(state[b] ^ state[c], 7);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void RoundFunction(uint* state, uint* msg, Size_T round, byte* scheduleBase)
         {
             // Select the message schedule based on the round.
@@ -117,8 +115,8 @@ public unsafe partial class Blake3
             G(state, 3, 4, 9, 14, msg[schedule[14]], msg[schedule[15]]);
         }
         
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-        private static void CompressPre(uint* state, uint* cv, byte* block, byte blockLength, ulong counter, Blake3Flags flags)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void CompressPre(uint* state, uint* cv, byte* block, uint blockLength, ulong counter, Blake3Flags flags)
         {
             // stack allocation is fine here.
             uint* blockWords = stackalloc uint[16];
@@ -166,11 +164,10 @@ public unsafe partial class Blake3
                 RoundFunction(state, blockWords, 4, scheduleBase);
                 RoundFunction(state, blockWords, 5, scheduleBase);
                 RoundFunction(state, blockWords, 6, scheduleBase);
-                DebugUtils.PrintBuffer(state, 16 * sizeof(uint));
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void HashOne(byte* input, Size_T blocks, uint* key, ulong counter, Blake3Flags flags, Blake3Flags flagsStart, Blake3Flags flagsEnd, byte* output, uint* cv, uint* state)
         {
             MemoryManager.Memcpy(cv, key, BLAKE3_KEY_LEN);

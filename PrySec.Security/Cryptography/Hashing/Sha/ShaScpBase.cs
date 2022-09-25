@@ -24,7 +24,7 @@ public abstract unsafe class ShaScpBase<TWord> : IHashFunctionScp where TWord : 
     private protected abstract void Initialize<T>(IUnmanaged<T> input, ref ShaScpState state) where T : unmanaged;
 
     IUnmanaged<byte> IHashFunctionScp.ComputeHash<T>(ref IUnmanaged<T> input) =>
-        ComputeHash<T, IUnmanaged<T>, DeterministicSpan<byte>>(ref input);
+        ComputeHash<T, IUnmanaged<T>, DeterministicMemory<byte>>(ref input);
 
     public TOutputMemory ComputeHash<TData, TInputMemory, TOutputMemory>(ref TInputMemory input)
         where TData : unmanaged
@@ -62,12 +62,12 @@ public abstract unsafe class ShaScpBase<TWord> : IHashFunctionScp where TWord : 
     {
         public readonly int AllocatedSize;
         public readonly int BlockCount;
-        public readonly DeterministicSpan<TWord> Buffer;
+        public readonly DeterministicMemory<TWord> Buffer;
         public readonly int DataLength;
 
         public ShaScpState(int allocatedSize, int blockCount, int dataLength)
         {
-            Buffer = new DeterministicSpan<TWord>(allocatedSize);
+            Buffer = new DeterministicMemory<TWord>(allocatedSize);
             Buffer.ZeroMemory();
             BlockCount = blockCount;
             AllocatedSize = allocatedSize;

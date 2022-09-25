@@ -1,4 +1,5 @@
-﻿using PrySec.Core.HwPrimitives;
+﻿using PrySec.Core;
+using PrySec.Core.HwPrimitives;
 using PrySec.Core.Memory.MemoryManagement;
 using PrySec.Core.NativeTypes;
 using PrySec.Security.MemoryProtection.Sentinels;
@@ -10,7 +11,6 @@ using System.Runtime.InteropServices;
 namespace PrySec.Security.Cryptography.Hashing.Blake3;
 public unsafe partial class Blake3
 {
-    [StructLayout(LayoutKind.Sequential)]
     private struct Blake3Context
     {
         public fixed uint Key[8];
@@ -41,12 +41,12 @@ public unsafe partial class Blake3
         public static void InitializeKeyed(Blake3Context* self, byte* key)
         {
             uint* keyWords = stackalloc uint[BLAKE3_KEY_DWORD_LEN];
-            using DeterministicSpan<uint> _ = DeterministicSpan.ProtectOnly(keyWords, BLAKE3_KEY_LEN);
+            using DeterministicMemory<uint> _ = DeterministicMemory.ProtectOnly(keyWords, BLAKE3_KEY_LEN);
             LoadKeyWords(key, keyWords);
             Initialize(self, keyWords, Blake3Flags.KEYED_HASH);
         }
 
-        public static void Update(Blake3Context* self, byte* input, Size_T inputLength)
+        public static void Update(Blake3Context* self, byte* input, ulong inputLength)
         {
             if (inputLength == 0)
             {
@@ -55,14 +55,10 @@ public unsafe partial class Blake3
 
             // If we have some partial chunk bytes in the internal chunk_state, we need
             // to finish that chunk first.
-            Size_T chunkLength = Blake3ChunkState.GetLength(&self->Chunk);
+            uint chunkLength = Blake3ChunkState.GetLength(&self->Chunk);
             if (chunkLength > 0)
             {
-                Size_T take = BLAKE3_CHUNK_LEN - chunkLength;
-                if (take > inputLength)
-                {
-                    take = inputLength;
-                }
+                uint take = (uint)Math.Min(BLAKE3_CHUNK_LEN - chunkLength, inputLength);
                 Blake3ChunkState.Update(&self->Chunk, input, take);
                 input += take;
                 inputLength -= take;
@@ -73,8 +69,9 @@ public unsafe partial class Blake3
                 {
                     Output_T output = default;
                     using DeterministicSentinel<Output_T> _ = DeterministicSentinel.Protect(&output);
+                    Blake3ChunkState.ToOutput(&self->Chunk, &output);
                     byte* chunkCv = stackalloc byte[BLAKE3_OUT_LEN];
-                    using DeterministicSpan<byte> _2 = DeterministicSpan.ProtectOnly(chunkCv, BLAKE3_OUT_LEN);
+                    using DeterministicMemory<byte> _2 = DeterministicMemory.ProtectOnly(chunkCv, BLAKE3_OUT_LEN);
                     Output_T.ChainingValue(&output, chunkCv);
                     PushCv(self, chunkCv, self->Chunk.ChunkCounter);
                     Blake3ChunkState.Reset(&self->Chunk, self->Key, self->Chunk.ChunkCounter + 1);
@@ -85,11 +82,10 @@ public unsafe partial class Blake3
                 }
             }
             
-            // TODO: this is still risky. We could still overflow the stack if Update() is called in a loop.
             byte* cv = stackalloc byte[BLAKE3_OUT_LEN];
             byte* cvPair = stackalloc byte[2 * BLAKE3_OUT_LEN];
-            using DeterministicSpan<byte> _3 = DeterministicSpan.ProtectOnly(cv, BLAKE3_OUT_LEN);
-            using DeterministicSpan<byte> _4 = DeterministicSpan.ProtectOnly(cvPair, 2 * BLAKE3_OUT_LEN);
+            using DeterministicMemory<byte> _3 = DeterministicMemory.ProtectOnly(cv, BLAKE3_OUT_LEN);
+            using DeterministicMemory<byte> _4 = DeterministicMemory.ProtectOnly(cvPair, 2 * BLAKE3_OUT_LEN);
 
             // Now the chunk_state is clear, and we have more input. If there's more than
             // a single chunk (so, definitely not the root chunk), hash the largest whole
@@ -106,7 +102,7 @@ public unsafe partial class Blake3
             // evenly divide what we already have, this part runs in a loop.
             while (inputLength > BLAKE3_CHUNK_LEN)
             {
-                Size_T subtreeLength = BinaryUtils.RoundDownToPowerOf2(inputLength);
+                ulong subtreeLength = BinaryUtils.RoundDownToPowerOf2(inputLength);
                 ulong countSoFar = self->Chunk.ChunkCounter * BLAKE3_CHUNK_LEN;
                 
                 // Shrink the subtree_len until it evenly divides the count so far. We know
@@ -124,21 +120,22 @@ public unsafe partial class Blake3
                 // stuck always hashing 2 chunks. The total number of chunks will remain
                 // odd, and we'll never graduate to higher degrees of parallelism. See
                 // https://github.com/BLAKE3-team/BLAKE3/issues/69.
-                while ((((ulong)(subtreeLength - 1)) & countSoFar) != 0)
+                while (((subtreeLength - 1) & countSoFar) != 0)
                 {
                     subtreeLength >>= 1;
                 }
                 // The shrunken subtree_len might now be 1 chunk long. If so, hash that one
                 // chunk by itself. Otherwise, compress the subtree into a pair of CVs.
-                ulong subtreeChunks = (ulong)subtreeLength / BLAKE3_CHUNK_LEN;
+                ulong subtreeChunks = subtreeLength / BLAKE3_CHUNK_LEN;
                 if (subtreeLength <= BLAKE3_CHUNK_LEN)
                 {
                     Blake3ChunkState chunkState = default;
                     Blake3ChunkState.Initialize(&chunkState, self->Key, self->Chunk.Flags);
                     chunkState.ChunkCounter = self->Chunk.ChunkCounter;
-                    Blake3ChunkState.Update(&chunkState, input, (uint)(ulong)subtreeLength);
+                    Blake3ChunkState.Update(&chunkState, input, (uint)subtreeLength);
                     Output_T output = default;
                     using DeterministicSentinel<Output_T> _ = DeterministicSentinel.Protect(&output);
+                    Blake3ChunkState.ToOutput(&chunkState, &output);
                     Output_T.ChainingValue(&output, cv);
                     PushCv(self, cv, chunkState.ChunkCounter);
                 }
@@ -146,7 +143,7 @@ public unsafe partial class Blake3
                 {
                     // This is the high-performance happy path, though getting here depends
                     // on the caller giving us a long enough input.
-                    CompressSubtreeToParentNode(input, (ulong)subtreeLength, self->Key, self->Chunk.ChunkCounter, self->Chunk.Flags, cvPair);
+                    CompressSubtreeToParentNode(input, subtreeLength, self->Key, self->Chunk.ChunkCounter, self->Chunk.Flags, cvPair);
                     PushCv(self, cvPair, self->Chunk.ChunkCounter);
                     PushCv(self, cvPair + BLAKE3_OUT_LEN, self->Chunk.ChunkCounter + (subtreeChunks / 2));
                 }
@@ -162,7 +159,7 @@ public unsafe partial class Blake3
             // simplifies blake3_hasher_finalize below.
             if (inputLength > 0)
             {
-                Blake3ChunkState.Update(&self->Chunk, input, inputLength);
+                Blake3ChunkState.Update(&self->Chunk, input, (uint)inputLength);
                 MergeCvStack(self, self->Chunk.ChunkCounter);
             }
         }
@@ -197,7 +194,6 @@ public unsafe partial class Blake3
             if (Blake3ChunkState.GetLength(&self->Chunk) > 0)
             {
                 cvsRemaining = self->CvStackLength;
-                // TODO: move ToOutput to Output_T member method.
                 Blake3ChunkState.ToOutput(&self->Chunk, &output_t);
             }
             else
@@ -206,7 +202,7 @@ public unsafe partial class Blake3
                 cvsRemaining = self->CvStackLength - 2;
                 Output_T.Parent(&output_t, self->CvStack + cvsRemaining * 32, self->Key, self->Chunk.Flags);
             }
-            byte* parentBlock = stackalloc byte[BLAKE3_BLOCK_LEN];
+            byte* parentBlock = stackalloc byte[(int)BLAKE3_BLOCK_LEN];
             while (cvsRemaining > 0)
             {
                 cvsRemaining--;
@@ -249,7 +245,7 @@ public unsafe partial class Blake3
         // merging with each of them separately, so that the second CV will always
         // remain unmerged. (That also helps us support extendable output when we're
         // hashing an input all-at-once.)
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void PushCv(Blake3Context* self, byte* newCv, ulong chunkCounter)
         {
             MergeCvStack(self, chunkCounter);
@@ -267,33 +263,30 @@ public unsafe partial class Blake3
         // that doesn't require us to retain the subtree size of the CV on top of the
         // stack. The principle is the same: each CV that should remain in the stack is
         // represented by a 1-bit in the total number of chunks (or bytes) so far.
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void MergeCvStack(Blake3Context* self, ulong totalLength)
         {
             int postMergeStackLength = BinaryUtils.PopulationCount(totalLength);
             while (self->CvStackLength > postMergeStackLength)
             {
-                // TODO: we allocate memory for Output_T here just to copy it's contents onto the stack after compression.
-                // can't we just use the stack directly with some pointer magic?
                 byte* parentNode = &self->CvStack[(self->CvStackLength - 2) * BLAKE3_OUT_LEN];
                 Output_T output = default;
+                Output_T.Parent(&output, parentNode, self->Key, self->Chunk.Flags);
                 using DeterministicSentinel<Output_T> _ = DeterministicSentinel.Protect(&output);
                 Output_T.ChainingValue(&output, parentNode);
-                self->CvStackLength -= 1;
+                self->CvStackLength -= 1;   
             }
         }
 
-        private static void CompressSubtreeToParentNode(byte* input, Size64_T inputLength, uint* key, ulong chunkCounter, Blake3Flags flags, byte* output)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void CompressSubtreeToParentNode(byte* input, ulong inputLength, uint* key, ulong chunkCounter, Blake3Flags flags, byte* output)
         {
-            // TODO: move this allocation outside of this function somewhere in the context and maybe do a lazy allocation.
-            // TODO: using delegate getter-pointers could be a good way to prune branching and initialization checks.
-            byte* cvArray = (byte*)MemoryManager.Malloc(MAX_SIMD_DEGREE_OR_2 * BLAKE3_OUT_LEN);
-            Size64_T numberOfCvs = CompressSubtreeWide(input, inputLength, key, chunkCounter, flags, cvArray);
+            byte* cvArray = stackalloc byte[MAX_SIMD_DEGREE_OR_2 * BLAKE3_OUT_LEN];
+            uint numberOfCvs = CompressSubtreeWide(input, inputLength, key, chunkCounter, flags, cvArray);
 
             // If MAX_SIMD_DEGREE is greater than 2 and there's enough input,
             // compress_subtree_wide() returns more than 2 chaining values. Condense
             // them into 2 by forming parent nodes repeatedly.
-            // TODO: check this allocation.
             byte* outArray = stackalloc byte[MAX_SIMD_DEGREE_OR_2 * BLAKE3_OUT_LEN / 2];
 
             // The second half of this loop condition is always true, and we just
@@ -303,7 +296,7 @@ public unsafe partial class Blake3
             // this code, test it against that version.
             while (numberOfCvs > 2 && numberOfCvs <= MAX_SIMD_DEGREE_OR_2)
             {
-                numberOfCvs = CompressPerentsParallel(cvArray, numberOfCvs, key, flags, outArray);
+                numberOfCvs = CompressParentsParallel(cvArray, numberOfCvs, key, flags, outArray);
                 MemoryManager.Memcpy(cvArray, outArray, (int)numberOfCvs * BLAKE3_OUT_LEN);
             }
             MemoryManager.Memcpy(output, cvArray, 2 * BLAKE3_OUT_LEN);
@@ -327,8 +320,7 @@ public unsafe partial class Blake3
         // of implementing this special rule? Because we don't want to limit SIMD or
         // multi-threading parallelism for that update().
         // recursive -> never inline
-        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-        private static Size64_T CompressSubtreeWide(byte* input, Size64_T inputLength, uint* key, ulong chunkCounter, Blake3Flags flags, byte* output)
+        private static uint CompressSubtreeWide(byte* input, ulong inputLength, uint* key, ulong chunkCounter, Blake3Flags flags, byte* output)
         {
             // Note that the single chunk case does *not* bump the SIMD degree up to 2
             // when it is 1. If this implementation adds multi-threading in the future,
@@ -336,53 +328,51 @@ public unsafe partial class Blake3
             // can help performance on smaller platforms.
             if (inputLength <= BLAKE3_SIMD_DEGREE * BLAKE3_CHUNK_LEN)
             {
-                return CompressChunksParallel(input, (Size_T)(ulong)inputLength, key, chunkCounter, flags, output);
+                return CompressChunksParallel(input, inputLength, key, chunkCounter, flags, output);
             }
 
             // With more than simd_degree chunks, we need to recurse. Start by dividing
             // the input into left and right subtrees. (Note that this is only optimal
             // as long as the SIMD degree is a power of 2. If we ever get a SIMD degree
             // of 3 or something, we'll need a more complicated strategy.)
-            Size64_T leftInputLength = LeftLength(inputLength);
-            Size64_T rightInputLength = (ulong)inputLength - leftInputLength;
+            ulong leftInputLength = LeftLength(inputLength);
+            ulong rightInputLength = inputLength - leftInputLength;
             byte* rightInput = input + leftInputLength;
-            ulong rightChunkCounter = chunkCounter + (ulong)(leftInputLength / BLAKE3_CHUNK_LEN);
+            ulong rightChunkCounter = chunkCounter + (leftInputLength / BLAKE3_CHUNK_LEN);
 
             // Make space for the child outputs. Here we use MAX_SIMD_DEGREE_OR_2 to
             // account for the special case of returning 2 outputs when the SIMD degree
             // is 1.
-            // TODO: this could be dangerous and risk overflowing the stack.
             byte* cvArray = stackalloc byte[2 * MAX_SIMD_DEGREE_OR_2 * BLAKE3_OUT_LEN];
-            Size_T degree = BLAKE3_SIMD_DEGREE;
+            uint degree = BLAKE3_SIMD_DEGREE;
             if (leftInputLength > BLAKE3_CHUNK_LEN && degree == 1)
             {
                 // The special case: We always use a degree of at least two, to make
                 // sure there are two outputs. Except, as noted above, at the chunk
                 // level, where we allow degree=1. (Note that the 1-chunk-input case is
                 // a different codepath.)
-                degree = 2;
+                degree = 2u;
             }
             byte* rightCvs = cvArray + degree * BLAKE3_OUT_LEN;
 
             // Recurse! If this implementation adds multi-threading support in the
             // future, this is where it will go.
             // TODO: add optional mutithreading support!
-            Size64_T leftN = CompressSubtreeWide(input, leftInputLength, key, chunkCounter, flags, cvArray);
-            Size64_T rightN = CompressSubtreeWide(rightInput, rightInputLength, key, rightChunkCounter, flags, rightCvs);
+            uint leftN = CompressSubtreeWide(input, leftInputLength, key, chunkCounter, flags, cvArray);
+            uint rightN = CompressSubtreeWide(rightInput, rightInputLength, key, rightChunkCounter, flags, rightCvs);
 
             // The special case again. If simd_degree=1, then we'll have left_n=1 and
             // right_n=1. Rather than compressing them into a single output, return
             // them directly, to make sure we always have at least two outputs.
             if (leftN == 1)
             {
-                // TODO: maybe it's possible operate directly on the output array?
                 Unsafe.CopyBlockUnaligned(output, cvArray, 2 * BLAKE3_OUT_LEN);
-                return 2uL;
+                return 2u;
             }
 
             // Otherwise, do one layer of parent node compression.
-            Size64_T numberOfChainingValues = leftN + rightN;
-            return CompressPerentsParallel(cvArray, numberOfChainingValues, key, flags, output);
+            uint numberOfChainingValues = leftN + rightN;
+            return CompressParentsParallel(cvArray, numberOfChainingValues, key, flags, output);
         }
 
         // Use SIMD parallelism to hash up to MAX_SIMD_DEGREE parents at the same time
@@ -390,11 +380,11 @@ public unsafe partial class Blake3
         // number of parents hashed. (If there's an odd input chaining value left over,
         // return it as an additional output.) These parents are never the root and
         // never empty; those cases use a different codepath.
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-        private static Size64_T CompressPerentsParallel(byte* childChainingValues, Size64_T numberOfChainingValues, uint* key, Blake3Flags flags, byte* output)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static uint CompressParentsParallel(byte* childChainingValues, uint numberOfChainingValues, uint* key, Blake3Flags flags, byte* output)
         {
             byte** parentsArray = stackalloc byte*[MAX_SIMD_DEGREE_OR_2];
-            Size64_T parentsArrayLength = 0uL;
+            uint parentsArrayLength = 0;
             for (; numberOfChainingValues - (2 * parentsArrayLength) >= 2; parentsArrayLength++)
             {
                 parentsArray[parentsArrayLength] = childChainingValues + 2 * parentsArrayLength * BLAKE3_OUT_LEN;
@@ -424,7 +414,7 @@ public unsafe partial class Blake3
         // Given some input larger than one chunk, return the number of bytes that
         // should go in the left subtree. This is the largest power-of-2 number of
         // chunks that leaves at least 1 byte for the right subtree.
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Size64_T LeftLength(Size64_T contentLength)
         {
             // Subtract 1 to reserve at least one byte for the right side. content_len
@@ -437,15 +427,14 @@ public unsafe partial class Blake3
         // on a single thread. Write out the chunk chaining values and return the
         // number of chunks hashed. These chunks are never the root and never empty;
         // those cases use a different codepath.
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-        private static Size64_T CompressChunksParallel(byte* input, Size_T inputLength, uint* key, ulong chunkCounter, Blake3Flags flags, byte* output)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static uint CompressChunksParallel(byte* input, ulong inputLength, uint* key, ulong chunkCounter, Blake3Flags flags, byte* output)
         {
-            // TODO: check that we don't risk overflowing the stack. Probably need to move this allocation
             // outside of this function somewhere and try to re-use stack space where possible. Especially
             // as most methods are inlined, this might be a problem as allocations are not popped of the stack.
             byte** chunksArray = stackalloc byte*[MAX_SIMD_DEGREE];
-            Size_T inputPosition = 0;
-            Size64_T chunksArrayLength = 0ul;
+            ulong inputPosition = 0;
+            uint chunksArrayLength = 0u;
             while (inputLength - inputPosition >= BLAKE3_CHUNK_LEN)
             {
                 chunksArray[chunksArrayLength] = input + inputPosition;
@@ -472,7 +461,7 @@ public unsafe partial class Blake3
                 Blake3ChunkState chunkState = default;
                 Blake3ChunkState.Initialize(&chunkState, key, flags);
                 chunkState.ChunkCounter = counter;
-                Blake3ChunkState.Update(&chunkState, input + inputPosition, inputLength - inputPosition);
+                Blake3ChunkState.Update(&chunkState, input + inputPosition, (uint)(inputLength - inputPosition));
                 Output_T chunkOutput = default;
                 using DeterministicSentinel<Output_T> _ = DeterministicSentinel.Protect(&chunkOutput);
                 Output_T.ChainingValue(&chunkOutput, output + chunksArrayLength * BLAKE3_OUT_LEN);

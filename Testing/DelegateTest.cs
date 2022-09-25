@@ -31,21 +31,21 @@ internal static class DelegateTest
 {
     public static void Use<T>() where T : IDelegateTest => Test = T.Test;
 
-    public static DelegateTestDelegate Test { get; private set; }
+    public static DelegateTestDelegate? Test { get; private set; }
 }
 
 internal static class DelegateTestExpressionTree
 {
     public static void Use<T>() where T : IDelegateTest
     {
-        MethodInfo method = typeof(T).GetMethod(nameof(T.Test));
+        MethodInfo? method = typeof(T).GetMethod(nameof(T.Test));
         ParameterExpression parameterExpression = Expression.Parameter(typeof(uint));
-        MethodCallExpression methodExpression = Expression.Call(method, parameterExpression);
+        MethodCallExpression methodExpression = Expression.Call(method!, parameterExpression);
         DelegateTestDelegate testDelegate = Expression.Lambda<DelegateTestDelegate>(methodExpression, parameterExpression).Compile();
         Test = testDelegate;
     }
 
-    public static DelegateTestDelegate Test { get; private set; }
+    public static DelegateTestDelegate? Test { get; private set; }
 }
 
 internal static class FuctionPointerTestWithProperty

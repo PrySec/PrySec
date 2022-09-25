@@ -1,4 +1,6 @@
-﻿using PrySec.Core.NativeTypes;
+﻿using PrySec.Core;
+using PrySec.Core.NativeTypes;
+using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -10,12 +12,12 @@ public unsafe partial class Blake3
     {
         public fixed uint Cv[8];
         public ulong ChunkCounter;
-        public fixed byte Buffer[BLAKE3_BLOCK_LEN];
+        public fixed byte Buffer[(int)BLAKE3_BLOCK_LEN];
         public byte BufferLength;
         public byte BlocksCompressed;
         public Blake3Flags Flags;
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Initialize(Blake3ChunkState* self, uint* key, Blake3Flags flags)
         {
             Unsafe.CopyBlockUnaligned(self->Cv, key, BLAKE3_KEY_LEN);
@@ -26,7 +28,7 @@ public unsafe partial class Blake3
             self->Flags = flags;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Reset(Blake3ChunkState* self, uint* key, ulong chunkCounter)
         {
             Unsafe.CopyBlockUnaligned(self->Cv, key, BLAKE3_KEY_LEN);
@@ -36,14 +38,14 @@ public unsafe partial class Blake3
             self->BufferLength = 0;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-        public static Size_T GetLength(Blake3ChunkState* self) =>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static uint GetLength(Blake3ChunkState* self) =>
             self->BlocksCompressed * BLAKE3_CHUNK_LEN + self->BufferLength;
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-        public static void Update(Blake3ChunkState* self, byte* input, Size_T inputLength)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Update(Blake3ChunkState* self, byte* input, uint inputLength)
         {
-            Size_T take;
+            uint take;
             if (self->BufferLength > 0)
             {
                 take = FillBuffer(self, input, inputLength);
@@ -69,14 +71,10 @@ public unsafe partial class Blake3
             inputLength -= take;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-        private static Size_T FillBuffer(Blake3ChunkState* self, byte* input, Size_T inputLength)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static uint FillBuffer(Blake3ChunkState* self, byte* input, uint inputLength)
         {
-            Size_T take = BLAKE3_BLOCK_LEN - self->BufferLength;
-            if (take > inputLength)
-            {
-                take = inputLength;
-            }
+            uint take = Math.Min(BLAKE3_BLOCK_LEN - self->BufferLength, inputLength);
             byte* destination = self->Buffer + self->BufferLength;
             Unsafe.CopyBlockUnaligned(destination, input, take);
             self->BufferLength += (byte)take;
@@ -89,7 +87,7 @@ public unsafe partial class Blake3
                 ? Blake3Flags.CHUNK_START
                 : 0;
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void ToOutput(Blake3ChunkState* self, Output_T* output)
         {
             Blake3Flags blockFlags = self->Flags | MaybeStartFlag(self) | Blake3Flags.CHUNK_END;

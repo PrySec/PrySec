@@ -41,19 +41,19 @@ public static unsafe partial class MemoryManager
         Calloc = &TImpl.Calloc;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void ZeroMemory<T>(T* ptr, Size_T elementCount) where T : unmanaged =>
         ZeroMemory((void*)ptr, elementCount * sizeof(T));
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void ZeroMemory(void* ptr, Size_T byteSize) =>
         Unsafe.InitBlockUnaligned(ptr, 0x0, byteSize);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Memcpy(void* destination, void* source, Size_T byteSize) =>
         Unsafe.CopyBlockUnaligned(destination, source, byteSize);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Memset(void* ptr, byte value, Size_T byteSize) =>
         Unsafe.InitBlockUnaligned(ptr, value, byteSize);
 

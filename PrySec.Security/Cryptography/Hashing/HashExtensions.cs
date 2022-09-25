@@ -13,9 +13,9 @@ public static class HashExtensions
         byte* bytes = (byte*)MemoryManager.Malloc(byteCount);
         Span<byte> buffer = new(bytes, byteCount);
         _ = Encoding.UTF8.GetBytes(input, buffer);
-        UnmanagedSpan<byte> memory = UnmanagedSpan<byte>.CreateFrom(buffer);
+        UnmanagedMemory<byte> memory = UnmanagedMemory<byte>.CreateFrom(buffer);
         MemoryManager.Free(bytes);
-        using IUnmanaged<byte> result = hashFunction.ComputeHash<byte, UnmanagedSpan<byte>, UnmanagedSpan<byte>>(ref memory);
+        using IUnmanaged<byte> result = hashFunction.ComputeHash<byte, UnmanagedMemory<byte>, UnmanagedMemory<byte>>(ref memory);
         memory.Free();
         ReadOnlySpan<byte> span = new(result.BasePointer, result.Count);
         return Convert.ToHexString(span);

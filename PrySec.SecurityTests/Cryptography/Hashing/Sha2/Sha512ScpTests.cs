@@ -1,8 +1,9 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using PrySec.Security.Cryptography.Hashing;
 using PrySec.Security.Cryptography.Hashing.Sha;
 using PrySec.SecurityTests;
 
-namespace PrySec.Security.Cryptography.Hashing.Tests;
+namespace PrySec.SecurityTests.Cryptography.Hashing.Sha2;
 
 [TestClass()]
 public class Sha512ScpTests : BaseTest

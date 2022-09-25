@@ -70,7 +70,7 @@ public unsafe partial class Blake2b : IHashFunctionScp
         // If there was a key supplied (i.e. cbKeyLen > 0)
         // then pad with trailing zeros to make it 128 - bytes(i.e. 16 words)
         // and prepend it to the message M
-        using DeterministicSpan<byte> paddedInput = new(input.ByteSize + 128);
+        using DeterministicMemory<byte> paddedInput = new(input.ByteSize + 128);
         using (IMemoryAccess<TKey> access = key.GetAccess())
         {
             Unsafe.CopyBlockUnaligned(paddedInput.BasePointer, access.Pointer, access.ByteSize);
@@ -81,9 +81,9 @@ public unsafe partial class Blake2b : IHashFunctionScp
         }
         ulong* hash = stackalloc ulong[8];
 
-        Blake2State<DeterministicSpan<byte>> state = new(paddedInput, hash, keyLength, digestLength);
+        Blake2State<DeterministicMemory<byte>> state = new(paddedInput, hash, keyLength, digestLength);
         Initialize(ref state);
-        TOutputMemory result = HashCore<DeterministicSpan<byte>, TOutputMemory>(ref state);
+        TOutputMemory result = HashCore<DeterministicMemory<byte>, TOutputMemory>(ref state);
         return result;
     }
 

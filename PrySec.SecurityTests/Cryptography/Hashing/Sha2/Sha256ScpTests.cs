@@ -1,66 +1,67 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using PrySec.Security.Cryptography.Hashing;
 using PrySec.Security.Cryptography.Hashing.Sha;
 using PrySec.SecurityTests;
 using System.Runtime.Versioning;
 
-namespace PrySec.Security.Cryptography.Hashing.Tests;
+namespace PrySec.SecurityTests.Cryptography.Hashing.Sha2;
 
 [TestClass()]
 [RequiresPreviewFeatures]
-public class Sha384ScpTests : BaseTest
+public class Sha256ScpTests : BaseTest
 {
-    private static readonly Sha384Scp _sha = new();
+    private static readonly Sha256Scp _sha = new();
 
     [TestMethod()]
-    public void Sha384ScpTestVector1()
+    public void Sha256ScpTestVector1()
     {
         const string input = "abc";
-        const string expectedHash = "CB00753F45A35E8BB5A03D699AC65007272C32AB0EDED1631A8B605A43FF5BED8086072BA1E7CC2358BAECA134C825A7";
+        const string expectedHash = "BA7816BF8F01CFEA414140DE5DAE2223B00361A396177A9CB410FF61F20015AD";
         Assert.AreEqual(expectedHash, _sha.ComputeHash(input));
         AssertMemoryFreed();
     }
 
     [TestMethod()]
-    public void Sha384ScpTestVector2()
+    public void Sha256ScpTestVector2()
     {
         string input = string.Empty;
-        const string expectedHash = "38B060A751AC96384CD9327EB1B1E36A21FDB71114BE07434C0CC7BF63F6E1DA274EDEBFE76F65FBD51AD2F14898B95B";
+        const string expectedHash = "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855";
         Assert.AreEqual(expectedHash, _sha.ComputeHash(input));
         AssertMemoryFreed();
     }
 
     [TestMethod()]
-    public void Sha384ScpTestVector3()
+    public void Sha256ScpTestVector3()
     {
         const string input = "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq";
-        const string expectedHash = "3391FDDDFC8DC7393707A65B1B4709397CF8B1D162AF05ABFE8F450DE5F36BC6B0455A8520BC4E6F5FE95B1FE3C8452B";
+        const string expectedHash = "248D6A61D20638B8E5C026930C3E6039A33CE45964FF2167F6ECEDD419DB06C1";
         Assert.AreEqual(expectedHash, _sha.ComputeHash(input));
         AssertMemoryFreed();
     }
 
     [TestMethod()]
-    public void Sha384ScpTestVector4()
+    public void Sha256ScpTestVector4()
     {
         const string input = "abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu";
-        const string expectedHash = "09330C33F71147E83D192FC782CD1B4753111B173B3B05D22FA08086E3B0F712FCC7C71A557E2DB966C3E9FA91746039";
+        const string expectedHash = "CF5B16A778AF8380036CE59E7B0492370B249B11E8F07A51AFAC45037AFEE9D1";
         Assert.AreEqual(expectedHash, _sha.ComputeHash(input));
         AssertMemoryFreed();
     }
 
     [TestMethod()]
-    public void Sha384ScpTestVector5()
+    public void Sha256ScpTestVector5()
     {
         string input = new('a', 1_000_000);
-        const string expectedHash = "9D0E1809716474CB086E834E310A4A1CED149E9C00F248527972CEC5704C2A5B07B8B3DC38ECC4EBAE97DDD87F3D8985";
+        const string expectedHash = "CDC76E5C9914FB9281A1C7E284D73E67F1809A48A497200E046D39CCC7112CD0";
         Assert.AreEqual(expectedHash, _sha.ComputeHash(input));
         AssertMemoryFreed();
     }
 
     [TestMethod()]
-    public void Sha384ScpTestVector6()
+    public void Sha256ScpTestVector6()
     {
         const string input = "The quick brown fox jumps over the lazy dog";
-        const string expectedHash = "CA737F1014A48F4C0B6DD43CB177B0AFD9E5169367544C494011E3317DBF9A509CB1E5DC1E85A941BBEE3D7F2AFBC9B1";
+        const string expectedHash = "D7A8FBB307D7809469CA9ABCB0082E4F8D5651E46D3CDB762D02D0BF37C9E592";
         Assert.AreEqual(expectedHash, _sha.ComputeHash(input));
         AssertMemoryFreed();
     }

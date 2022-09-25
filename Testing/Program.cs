@@ -16,23 +16,18 @@ using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 using Testing;
 using System.Text;
+using PrySec.Core;
 
-const string test = "asdf";
 MemoryManager.UseImplementation<NativeMemoryManager>();
-Blake3 blake = new();
-string result = blake.ComputeHash(test);
-Console.WriteLine(result);
 
-return;
-
-const uint WARMUP = 50_000;
-const uint ITERATIONS = 100_000;
+const uint WARMUP = 10_000;
+const uint ITERATIONS = 50_000;
 
 unsafe
 {
     string str = new('A', 100000);
     int strLength = str.Length;
-    DeterministicSpan<byte> span = DeterministicSpan<byte>.Allocate(strLength);
+    DeterministicMemory<byte> span = DeterministicMemory<byte>.Allocate(strLength);
     fixed (char* pStr = str)
     {
         Unsafe.CopyBlockUnaligned(span.BasePointer, pStr, (uint)strLength);
@@ -41,22 +36,22 @@ unsafe
         // setup
 
         // warmup
-        Blake3 b = new();
+        Blake2b b = new();
         for (uint i = 0; i < WARMUP; i++)
         {
-            using DeterministicSpan<byte> _ = b.ComputeHash<byte, DeterministicSpan<byte>, DeterministicSpan<byte>>(ref span);
+            using DeterministicMemory<byte> _ = b.ComputeHash<byte, DeterministicMemory<byte>, DeterministicMemory<byte>>(ref span);
         }
         Stopwatch stopwatch = new();
         stopwatch.Start();
         for (uint i = 0; i < ITERATIONS; i++)
         {
-            using DeterministicSpan<byte> _ = b.ComputeHash<byte, DeterministicSpan<byte>, DeterministicSpan<byte>>(ref span);
+            using DeterministicMemory<byte> _ = b.ComputeHash<byte, DeterministicMemory<byte>, DeterministicMemory<byte>>(ref span);
         }
         stopwatch.Stop();
         Console.WriteLine(stopwatch.Elapsed);
         Console.WriteLine($"That's {stopwatch.ElapsedMilliseconds / (double)ITERATIONS} ms / it");
         Console.WriteLine($"Or {(double)ITERATIONS / stopwatch.ElapsedMilliseconds * 1000} it / s");
-        Console.WriteLine($"Or {ITERATIONS * Encoding.UTF8.GetByteCount(str) / 1_000_000 / stopwatch.Elapsed.TotalSeconds} GB / s");
+        Console.WriteLine($"Or {ITERATIONS * Encoding.UTF8.GetByteCount(str) / 1_000_000 / stopwatch.Elapsed.TotalSeconds} MB / s");
         Console.WriteLine();
     }
 }

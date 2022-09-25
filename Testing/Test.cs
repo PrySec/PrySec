@@ -16,7 +16,7 @@ public class Test
         Guid* guids = (Guid*)MemoryManager.Calloc(32, sizeof(Guid));
         Guid* guids2 = MemoryManager.Allocator.Calloc<Guid>(32);
 
-        AllocationSnapshot snapshot = MemoryManager.GetAllocationSnapshot();
+        AllocationSnapshot? snapshot = MemoryManager.GetAllocationSnapshot();
      
         Console.WriteLine(snapshot);
     }
