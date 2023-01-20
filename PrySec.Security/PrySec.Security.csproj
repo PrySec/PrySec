@@ -10,4 +10,8 @@
     <ProjectReference Include="..\PrySec.Core\PrySec.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="MemoryProtection\Native\Posix\" />
+  </ItemGroup>
+
 </Project>

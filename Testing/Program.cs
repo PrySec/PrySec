@@ -6,7 +6,7 @@ using PrySec.Core.Memory.MemoryManagement.Implementations.AllocationTracking;
 using PrySec.Security.Cryptography.Hashing.Blake2;
 using PrySec.Security.Cryptography.Hashing.Blake3;
 using PrySec.Security.Cryptography.Hashing;
-using PrySec.Security.MemoryProtection.Universal;
+using PrySec.Security.MemoryProtection.Portable;
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;

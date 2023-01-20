@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 namespace PrySec.Core.NativeTypes;
 
 [StructLayout(LayoutKind.Explicit)]
-public readonly struct Size_T
+public unsafe readonly struct Size_T
 {
     [FieldOffset(0x0)]
     private readonly nuint value;
@@ -43,4 +43,8 @@ public readonly struct Size_T
     public override bool Equals(object? obj) => obj is Size_T t && value.Equals(t.value);
 
     public override int GetHashCode() => value.GetHashCode();
+
+    public static readonly int ByteSize = sizeof(nint);
+
+    public static readonly int BitSize = sizeof(nint) << 3;
 }

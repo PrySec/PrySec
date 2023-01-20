@@ -1,4 +1,5 @@
 ﻿using PrySec.Core.NativeTypes;
+using System;
 
 namespace PrySec.Core.Memory;
 
@@ -16,6 +17,8 @@ public unsafe readonly struct MemoryAccess<T> : IMemoryAccess<T> where T : unman
     public readonly int Count { get; }
 
     public Size_T ByteSize { get; }
+
+    public Span<T> AsSpan() => new(Pointer, Count);
 
     public readonly void Dispose()
     {

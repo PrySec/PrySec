@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace PrySec.Security.MemoryProtection.Universal;
+namespace PrySec.Security.MemoryProtection.Portable;
 public static unsafe class DeterministicMemory
 {
     public static DeterministicMemory<T> ProtectSingle<T>(T* target) where T : unmanaged =>

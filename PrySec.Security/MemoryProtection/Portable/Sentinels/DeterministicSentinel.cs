@@ -4,7 +4,7 @@ using PrySec.Core.NativeTypes;
 using System;
 using System.Runtime.CompilerServices;
 
-namespace PrySec.Security.MemoryProtection.Sentinels;
+namespace PrySec.Security.MemoryProtection.Portable.Sentinels;
 
 /// <summary>
 /// Protects an already existing block of memory by guaranteeing that it is zeroed out before it is freed.
@@ -20,6 +20,8 @@ public unsafe readonly struct DeterministicSentinel<T> : IProtectedMemory<T> whe
 
     public IntPtr NativeHandle { get; }
 
+    public Size_T NativeByteSize => ByteSize;
+
     public DeterministicSentinel(T* basePointer, Size_T byteSize)
     {
         BasePointer = basePointer;
@@ -34,14 +36,14 @@ public unsafe readonly struct DeterministicSentinel<T> : IProtectedMemory<T> whe
             ZeroMemory();
         }
     }
-    
+
     public void Free() => Dispose();
 
     public void ZeroMemory() => MemoryManager.ZeroMemory(BasePointer, Count);
 
     public readonly MemoryAccess<TAs> GetAccess<TAs>() where TAs : unmanaged =>
         new((TAs*)BasePointer, ByteSize / sizeof(TAs));
-    
+
     readonly IMemoryAccess<TAs> IUnmanaged.GetAccess<TAs>() => GetAccess<TAs>();
 
     public readonly MemoryAccess<T> GetAccess() => new(BasePointer, Count);

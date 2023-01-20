@@ -1,7 +1,7 @@
 ﻿using PrySec.Core.Memory;
 using PrySec.Core.Memory.MemoryManagement;
 using PrySec.Core.NativeTypes;
-using PrySec.Security.MemoryProtection.Universal;
+using PrySec.Security.MemoryProtection.Portable;
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics.X86;

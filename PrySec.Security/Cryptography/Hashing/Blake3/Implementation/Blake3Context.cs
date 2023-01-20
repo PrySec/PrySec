@@ -2,8 +2,8 @@
 using PrySec.Core.HwPrimitives;
 using PrySec.Core.Memory.MemoryManagement;
 using PrySec.Core.NativeTypes;
-using PrySec.Security.MemoryProtection.Sentinels;
-using PrySec.Security.MemoryProtection.Universal;
+using PrySec.Security.MemoryProtection.Portable;
+using PrySec.Security.MemoryProtection.Portable.Sentinels;
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;

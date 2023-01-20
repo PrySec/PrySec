@@ -7,7 +7,7 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Xml.Linq;
 
-namespace PrySec.Security.MemoryProtection.Universal;
+namespace PrySec.Security.MemoryProtection.Portable;
 
 public unsafe readonly struct DeterministicMemory<T> : IProtectedMemoryFactory<DeterministicMemory<T>, T> where T : unmanaged
 {
@@ -23,6 +23,8 @@ public unsafe readonly struct DeterministicMemory<T> : IProtectedMemoryFactory<D
     /// Indicates whether this instance is allowed to free the underlying memory or whether it is managed externally.
     /// </summary>
     public readonly bool WillFreeAllocatedMemory { get; } = false;
+
+    public Size_T NativeByteSize => ByteSize;
 
     public DeterministicMemory<T> this[Range range]
     {

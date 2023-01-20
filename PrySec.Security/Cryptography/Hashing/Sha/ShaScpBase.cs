@@ -1,6 +1,6 @@
 ﻿using PrySec.Core.HwPrimitives;
 using PrySec.Core.Memory;
-using PrySec.Security.MemoryProtection.Universal;
+using PrySec.Security.MemoryProtection.Portable;
 
 namespace PrySec.Security.Cryptography.Hashing.Sha;
 

@@ -12,4 +12,6 @@ public unsafe interface IMemoryAccess<T> : IDisposable where T : unmanaged
     public Size_T ByteSize { get; }
 
     public UnsafeReference<T> GetUnsafeReference() => new(Pointer, Count);
+
+    public Span<T> AsSpan();
 }

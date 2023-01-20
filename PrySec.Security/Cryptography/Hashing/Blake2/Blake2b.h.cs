@@ -1,6 +1,6 @@
 ﻿using PrySec.Core.Memory;
 using PrySec.Core.NativeTypes;
-using PrySec.Security.MemoryProtection.Universal;
+using PrySec.Security.MemoryProtection.Portable;
 using System.Runtime.CompilerServices;
 
 namespace PrySec.Security.Cryptography.Hashing.Blake2;
