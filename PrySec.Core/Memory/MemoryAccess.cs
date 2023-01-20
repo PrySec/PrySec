@@ -1,4 +1,5 @@
-﻿using PrySec.Core.NativeTypes;
+﻿using PrySec.Core.Memory.MemoryManagement;
+using PrySec.Core.NativeTypes;
 using System;
 
 namespace PrySec.Core.Memory;
@@ -23,4 +24,6 @@ public unsafe readonly struct MemoryAccess<T> : IMemoryAccess<T> where T : unman
     public readonly void Dispose()
     {
     }
+
+    public void ZeroMemory() => MemoryManager.ZeroMemory(Pointer, ByteSize);
 }

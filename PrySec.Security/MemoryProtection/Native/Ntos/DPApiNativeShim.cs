@@ -24,10 +24,7 @@ internal static partial class DPApiNativeShim
         }
     }
 
-    public static unsafe void SecureZeroMemory(nint handle, uint count) => 
-        SecureZeroMemoryNative(handle, count);
-
-    public static Size_T RoundToBlockSize(Size_T size)
+    public static Size_T RoundToNextBlockSize(Size_T size)
     {
         // CRYPTPROTECTMEMORY_BLOCK_SIZE is 16
         nuint s = size;

@@ -3,7 +3,11 @@ using System;
 
 namespace PrySec.Core.Memory;
 
-public readonly unsafe struct UnsafeReference<T> where T : unmanaged
+/// <summary>
+/// Basically a <see cref="Span{T}"/>, but with pointers.
+/// </summary>
+/// <typeparam name="T"></typeparam>
+public unsafe readonly ref struct UnsafeReference<T> where T : unmanaged
 {
     public readonly T* Pointer;
 
@@ -18,5 +22,5 @@ public readonly unsafe struct UnsafeReference<T> where T : unmanaged
         ByteSize = size * sizeof(T);
     }
 
-    public void SetZero() => new Span<byte>(Pointer, ByteSize).Fill(0x0);
+    public void SetZero() => new Span<byte>(Pointer, ByteSize).Clear();
 }

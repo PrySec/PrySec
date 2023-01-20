@@ -56,12 +56,14 @@ public readonly unsafe struct ThreadLocalAllocationTracker<TMemoryManager> : IMe
         return p;
     }
 
+    public void Clear() => _allocations.Value!.Clear();
+
     public AllocationSnapshot GetAllocationSnapshot(bool reset = false)
     {
         Allocation[] allocations = _allocations.Value!.Values.ToArray();
         if (reset)
         {
-            _allocations.Value!.Clear();
+            Clear();
         }
         return new AllocationSnapshot(allocations);
     }

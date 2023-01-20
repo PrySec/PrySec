@@ -55,12 +55,14 @@ public readonly unsafe struct AllocationTracker<TMemoryManager> : IMemoryManager
         return p;
     }
 
+    public void Clear() => _allocations.Clear();
+
     public AllocationSnapshot GetAllocationSnapshot(bool reset = false)
     {
         Allocation[] allocations = _allocations.Values.ToArray();
         if (reset)
         {
-            _allocations.Clear();
+            Clear();
         }
         return new AllocationSnapshot(allocations);
     }

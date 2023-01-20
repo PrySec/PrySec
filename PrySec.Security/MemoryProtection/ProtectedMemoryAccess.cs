@@ -1,26 +1,36 @@
 ﻿using PrySec.Core.Memory;
 using PrySec.Core.NativeTypes;
 using System;
+using System.Runtime.CompilerServices;
 
 namespace PrySec.Security.MemoryProtection;
-public readonly struct ProtectedMemoryAccess<TProtectedMemory, TData> : IMemoryAccess<TData>
-    where TProtectedMemory : class, IProtectedMemory<TData>, IRequireManualAccess
+
+internal unsafe readonly struct ProtectedMemoryAccess<TProtectedMemoryProxy, TData> : IMemoryAccess<TData>
+    where TProtectedMemoryProxy : class, IProtectedResource, IProtectedMemoryProxy
     where TData : unmanaged
 {
-    private readonly TProtectedMemory _memory;
+    private readonly TProtectedMemoryProxy _proxy;
 
-    public ProtectedMemoryAccess(TProtectedMemory memory)
+    public ProtectedMemoryAccess(TProtectedMemoryProxy proxy)
     {
-        _memory = memory;
-        _memory.Unprotect();
+        _proxy = proxy;
+        Pointer = (TData*)proxy.BasePointerInternal;
+        Count = proxy.ByteSize / sizeof(TData);
+        _proxy.Unprotect();
     }
 
-    public unsafe TData* Pointer => _memory.BasePointer;
+    public unsafe TData* Pointer { get; }
 
-    public int Count => _memory.Count;
+    public int Count { get; }
 
-    public Size_T ByteSize => _memory.ByteSize;
+    public Size_T ByteSize => _proxy.ByteSize;
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public unsafe Span<TData> AsSpan() => new(Pointer, Count);
-    public void Dispose() => _memory.Protect();
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Dispose() => _proxy.Protect();
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void ZeroMemory() => _proxy.ZeroMemory();
 }

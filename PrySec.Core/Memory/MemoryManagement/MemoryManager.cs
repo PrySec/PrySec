@@ -1,4 +1,5 @@
-﻿using PrySec.Core.Memory.MemoryManagement.Implementations;
+﻿using PrySec.Core.Interop.Ntos;
+using PrySec.Core.Memory.MemoryManagement.Implementations;
 using PrySec.Core.Memory.MemoryManagement.Implementations.AllocationTracking;
 using PrySec.Core.NativeTypes;
 using System;
@@ -13,7 +14,7 @@ public static unsafe partial class MemoryManager
     /// <summary>
     /// <see langword="void"/> Free(<see langword="void*"/> ptr);
     /// </summary>
-    public static delegate*<void*, void> Free { get; private set; } = null;
+    private static delegate*<void*, void> _freeImpl { get; set; } = null;
 
     /// <summary>
     /// <see langword="void*"/> Malloc(<see cref="Size_T"/> byteSize);
@@ -35,11 +36,19 @@ public static unsafe partial class MemoryManager
     public static void UseImplementation<TImpl>() where TImpl : struct, IMemoryManager
     {
         Allocator = new TImpl();
-        Free = &TImpl.Free;
+        _freeImpl = &TImpl.Free;
         Malloc = &TImpl.Malloc;
         Realloc = &TImpl.Realloc;
         Calloc = &TImpl.Calloc;
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Free(nint handle) => 
+        _freeImpl(handle.ToPointer());
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Free(void* ptr) => 
+        _freeImpl(ptr);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void ZeroMemory<T>(T* ptr, Size_T elementCount) where T : unmanaged =>
@@ -48,6 +57,10 @@ public static unsafe partial class MemoryManager
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void ZeroMemory(void* ptr, Size_T byteSize) =>
         Unsafe.InitBlockUnaligned(ptr, 0x0, byteSize);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void ZeroMemory(nint handle, Size_T byteSize) =>
+        ZeroMemory(handle.ToPointer(), byteSize);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Memcpy(void* destination, void* source, Size_T byteSize) =>

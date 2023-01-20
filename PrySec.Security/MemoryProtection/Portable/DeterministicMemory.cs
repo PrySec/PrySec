@@ -30,13 +30,13 @@ public unsafe readonly struct DeterministicMemory<T> : IProtectedMemoryFactory<D
     {
         get
         {
-            int size = range.End.Value - range.Start.Value;
-            if (size <= 0)
+            int count = range.End.Value - range.Start.Value;
+            if (count <= 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(range));
             }
-            DeterministicMemory<T> deterministicSpan = new(size);
-            Unsafe.CopyBlockUnaligned(deterministicSpan.BasePointer, BasePointer + range.Start.Value, (uint)size);
+            DeterministicMemory<T> deterministicSpan = new(count);
+            MemoryManager.Memcpy(deterministicSpan.BasePointer, BasePointer + range.Start.Value, count * sizeof(T));
             return deterministicSpan;
         }
     }

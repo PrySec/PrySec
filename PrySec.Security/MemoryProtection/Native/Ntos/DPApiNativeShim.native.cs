@@ -22,14 +22,11 @@ static partial class DPApiNativeShim
     /// </summary>
     private const uint CRYPTPROTECTMEMORY_SAME_LOGON = 0x2;
 
-    [LibraryImport("Crypt32.dll", SetLastError = true)]
+    [LibraryImport("Crypt32.dll", SetLastError = true, EntryPoint = "CryptProtectMemory")]
     [return: MarshalAs(UnmanagedType.I4)]
     private static partial bool CryptProtectMemoryNative(nint pDataIn, uint cbDataIn, uint dwFlags);
 
-    [LibraryImport("Crypt32.dll", SetLastError = true)]
+    [LibraryImport("Crypt32.dll", SetLastError = true, EntryPoint = "CryptUnprotectMemory")]
     [return: MarshalAs(UnmanagedType.I4)]
     private static partial bool CryptUnprotectMemoryNative(nint pDataIn, uint cbDataIn, uint dwFlags);
-
-    [LibraryImport("Kernel32.dll", SetLastError = false)]
-    private static partial void SecureZeroMemoryNative(nint ptr, uint cnt);
 }

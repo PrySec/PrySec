@@ -9,8 +9,6 @@ public interface IProtectedMemory<T> : IUnmanaged<T> where T : unmanaged
     nint NativeHandle { get; }
 
     Size_T NativeByteSize { get; }
-
-    void ZeroMemory();
 }
 
 public interface IProtectedMemoryFactory<TProtectedMemoryFactory, TData> : IProtectedMemory<TData>, IUnmanaged<TProtectedMemoryFactory, TData>
@@ -19,13 +17,20 @@ public interface IProtectedMemoryFactory<TProtectedMemoryFactory, TData> : IProt
 {
 }
 
-public interface IRequireManualAccess
+internal interface IProtectedResource
 {
-    internal ProtectionState State { get; set; }
+    internal ProtectionState State { get; }
 
     internal void Protect();
 
     internal void Unprotect();
+}
+
+internal unsafe interface IProtectedMemoryProxy : IUnmanaged, IProtectedResource
+{
+    internal void* BasePointerInternal { get; }
+
+    internal void ZeroMemory();
 }
 
 internal enum ProtectionState

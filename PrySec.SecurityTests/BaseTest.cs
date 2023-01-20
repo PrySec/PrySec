@@ -2,11 +2,6 @@
 using PrySec.Core.Memory.MemoryManagement;
 using PrySec.Core.Memory.MemoryManagement.Implementations;
 using PrySec.Core.Memory.MemoryManagement.Implementations.AllocationTracking;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace PrySec.SecurityTests;
 
@@ -15,6 +10,23 @@ public abstract class BaseTest
     static BaseTest()
     {
         MemoryManager.UseImplementation<ThreadLocalAllocationTracker<NativeMemoryManager>>();
+    }
+
+    [ClassInitialize]
+    public virtual void OnClassInitialize()
+    {
+        AssertMemoryFreed();
+    }
+
+    [TestInitialize]
+    public virtual void OnTestInitialize()
+    {
+    }
+
+    [TestCleanup]
+    public virtual void OnTestCleanup()
+    {
+        AssertMemoryFreed();
     }
 
     protected void AssertMemoryFreed()

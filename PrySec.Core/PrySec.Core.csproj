@@ -7,4 +7,17 @@
 	  <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Remove="Interop\Ntos\WinApi.cs~RF14fc508.TMP" />
+    <None Remove="Interop\Ntos\WinApi.native.cs~RF1779d3a.TMP" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\.editorconfig" Link=".editorconfig" />
+  </ItemGroup>
+
+	<PropertyGroup Condition=" '$(OS)' == 'Windows_NT' ">
+		<DefineConstants>WIN32</DefineConstants>
+	</PropertyGroup>
+
 </Project>

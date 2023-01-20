@@ -2,5 +2,7 @@
 
 public interface IAllocationTracker
 {
+    void Clear();
+
     AllocationSnapshot GetAllocationSnapshot(bool reset);
 }
