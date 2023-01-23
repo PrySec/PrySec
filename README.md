@@ -13,13 +13,13 @@ Stop people from prying around in your process's memory!
 
 ### Defensive
 
-- [ ] Cross platform memory protection providing low and high level access to protected memory using [DPAPI](https://en.wikipedia.org/wiki/Data_Protection_API) on Windows NT and custom AES256-CBC-HMAC-BLAKE2b memory protection on UNIX systems keeping your passwords and sensitive data safe from memory dumps and snooping.
+- [ ] Cross platform memory protection providing low and high level access to protected memory using [DPAPI](https://en.wikipedia.org/wiki/Data_Protection_API) on Windows NT and custom BLAKE3-based XOR stream cipher memory protection on UNIX systems keeping your passwords and sensitive data safe from memory dumps and snooping.
 - [ ] Simple managed and unmanaged debugger detection and mitigation, thread hiding, etc ...
 - [ ] Resource protection - protect your application resources in compressed and encrypted key-value binary blobs.
   
 ### Security
 
-- High performance cryptography library (AES, SHA family hashes, Scrypt, BLAKE2, ...) operating completely on protected memory, allowing you to use your protected secrets without compromising them (unlike [`SecureString`](https://docs.microsoft.com/en-us/dotnet/api/system.security.securestring?view=net-5.0) for example).
+- High performance cryptography library (AES, SHA family hashes, Scrypt, BLAKE2, BLAKE3, ...) operating completely on protected memory, allowing you to use your protected secrets without compromising them (unlike [`SecureString`](https://docs.microsoft.com/en-us/dotnet/api/system.security.securestring?view=net-5.0) for example).
   - [ ] SHA Family
     - [x] SHA-1
     - [x] SHA-224
