@@ -1,6 +1,9 @@
-﻿using PrySec.Core.NativeTypes;
+﻿using PrySec.Core.ArrayTypes;
+using PrySec.Core.Memory.MemoryManagement;
+using PrySec.Core.NativeTypes;
 using System;
 using System.Collections;
+using System.Net.Http.Headers;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
@@ -36,6 +39,7 @@ public unsafe partial class Blake3
 
     private enum Blake3Flags : byte
     {
+        NONE = 0,
         CHUNK_START = 1 << 0,
         CHUNK_END = 1 << 1,
         PARENT = 1 << 2,
@@ -45,23 +49,14 @@ public unsafe partial class Blake3
         DERIVE_KEY_MATERIAL = 1 << 6,
     }
 
-    private static readonly uint[] IV = new uint[]
-    {
-        0x6A09E667u, 0xBB67AE85u, 0x3C6EF372u, 0xA54FF53Au,
-        0x510E527Fu, 0x9B05688Cu, 0x1F83D9ABu, 0x5BE0CD19u
-    };
+    // should be "const uint* const"
+    private static readonly uint* IV;
+    private const int IVLength = 8;
+    private const int IVByteSize = IVLength * sizeof(uint);
 
-    private static readonly byte[,] MSG_SCHEDULE = new byte[7,16]
-    {
-        {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},
-        {2, 6, 3, 10, 7, 0, 4, 13, 1, 11, 12, 5, 9, 14, 15, 8},
-        {3, 4, 10, 12, 13, 2, 7, 14, 6, 5, 9, 0, 11, 15, 8, 1},
-        {10, 7, 12, 9, 14, 3, 13, 15, 4, 0, 11, 2, 5, 8, 1, 6},
-        {12, 13, 9, 11, 15, 10, 14, 8, 7, 2, 5, 3, 0, 1, 6, 4},
-        {9, 14, 11, 5, 8, 12, 15, 1, 13, 3, 0, 10, 2, 6, 4, 7},
-        {11, 15, 5, 0, 1, 9, 8, 6, 14, 10, 2, 12, 3, 4, 7, 13},
-    };
-
+    // should be "const byte * const *"
+    private static readonly Array2d<byte> MSG_SCHEDULE;
+        
     private static delegate*<uint*, byte*, uint, ulong, Blake3Flags, void> _compressInPlaceImpl;
     private static delegate*<byte**, ulong, uint, uint*, ulong, bool, Blake3Flags, Blake3Flags, Blake3Flags, byte*, void> _hashManyImpl;
     private static delegate*<uint*, byte*, uint, ulong, Blake3Flags, byte*, void> _compressXofImpl;
@@ -79,7 +74,7 @@ public unsafe partial class Blake3
 
         BLAKE3_SIMD_DEGREE = 0 switch
         {
-            // Uncomment once we have support for AVX512 in the .net runtime
+            // Uncomment once we have support for AVX512 in the .NET runtime
             //_ when Avx512.IsSupported => 16,                                                  // 16
             _ when Avx2.IsSupported => UseSimdImplementation<Blake3HwIntrinsicsAvx2>(),         // 8
             _ when Sse41.IsSupported => UseSimdImplementation<Blake3HwIntrinsicsSse41>(),       // 4
@@ -88,6 +83,39 @@ public unsafe partial class Blake3
             //_ when AdvSimd.IsSupported => UseSimdImplementation<Blake3HwIntrinsicsAdvSimd>(), // 4
             _ => UseSimdImplementation<Blake3HwIntrinsicsDefault>()                             // 1
         };
+
+        // initialize IV on the heap
+        uint* ivData = stackalloc uint[]
+        {
+            0x6A09E667u, 0xBB67AE85u, 0x3C6EF372u, 0xA54FF53Au,
+            0x510E527Fu, 0x9B05688Cu, 0x1F83D9ABu, 0x5BE0CD19u
+        };
+        // TODO: maybe do aligned allocation here!
+        IV = (uint*)MemoryManager.Malloc(IVByteSize); 
+        MemoryManager.Memcpy(IV, ivData, IVByteSize);
+
+        byte[,] messageScheduleData = new byte[7, 16]
+        {
+            {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},
+            {2, 6, 3, 10, 7, 0, 4, 13, 1, 11, 12, 5, 9, 14, 15, 8},
+            {3, 4, 10, 12, 13, 2, 7, 14, 6, 5, 9, 0, 11, 15, 8, 1},
+            {10, 7, 12, 9, 14, 3, 13, 15, 4, 0, 11, 2, 5, 8, 1, 6},
+            {12, 13, 9, 11, 15, 10, 14, 8, 7, 2, 5, 3, 0, 1, 6, 4},
+            {9, 14, 11, 5, 8, 12, 15, 1, 13, 3, 0, 10, 2, 6, 4, 7},
+            {11, 15, 5, 0, 1, 9, 8, 6, 14, 10, 2, 12, 3, 4, 7, 13},
+        };
+        // TODO: maybe do aligned allocation here!
+        byte* pMessageScheduleBuffer = (byte*)MemoryManager.Malloc(7 * 16);
+        Array2d<byte> messageScheduleBuffer = new(pMessageScheduleBuffer, 7, 16);
+
+        for (int row = 0; row < 7; row++)
+        {
+            for (int col = 0; col < 16; col++)
+            {
+                messageScheduleBuffer[row, col] = messageScheduleData[row, col];
+            }
+        }
+        MSG_SCHEDULE = messageScheduleBuffer;
     }
 
     private static uint UseSimdImplementation<T>() where T : IBlake3Implementation

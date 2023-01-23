@@ -2,6 +2,7 @@
 using PrySec.Core.HwPrimitives;
 using PrySec.Core.Memory.MemoryManagement;
 using PrySec.Core.NativeTypes;
+using System;
 using System.Runtime.CompilerServices;
 
 namespace PrySec.Security.Cryptography.Hashing.Blake3;
@@ -114,7 +115,7 @@ public unsafe partial class Blake3
             G(state, 2, 7, 8, 13, msg[schedule[12]], msg[schedule[13]]);
             G(state, 3, 4, 9, 14, msg[schedule[14]], msg[schedule[15]]);
         }
-        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void CompressPre(uint* state, uint* cv, byte* block, uint blockLength, ulong counter, Blake3Flags flags)
         {
@@ -155,16 +156,13 @@ public unsafe partial class Blake3
             state[14] = blockLength;
             state[15] = (uint)flags;
 
-            fixed (byte* scheduleBase = MSG_SCHEDULE)
-            {
-                RoundFunction(state, blockWords, 0, scheduleBase);
-                RoundFunction(state, blockWords, 1, scheduleBase);
-                RoundFunction(state, blockWords, 2, scheduleBase);
-                RoundFunction(state, blockWords, 3, scheduleBase);
-                RoundFunction(state, blockWords, 4, scheduleBase);
-                RoundFunction(state, blockWords, 5, scheduleBase);
-                RoundFunction(state, blockWords, 6, scheduleBase);
-            }
+            RoundFunction(state, blockWords, 0, MSG_SCHEDULE);
+            RoundFunction(state, blockWords, 1, MSG_SCHEDULE);
+            RoundFunction(state, blockWords, 2, MSG_SCHEDULE);
+            RoundFunction(state, blockWords, 3, MSG_SCHEDULE);
+            RoundFunction(state, blockWords, 4, MSG_SCHEDULE);
+            RoundFunction(state, blockWords, 5, MSG_SCHEDULE);
+            RoundFunction(state, blockWords, 6, MSG_SCHEDULE);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

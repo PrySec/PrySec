@@ -32,10 +32,7 @@ public unsafe partial class Blake3
 
         public static void Initialize(Blake3Context* self)
         {
-            fixed (uint* key = IV)
-            {
-                Initialize(self, key, 0);
-            }
+            Initialize(self, IV, Blake3Flags.NONE);
         }
 
         public static void InitializeKeyed(Blake3Context* self, byte* key)
@@ -44,6 +41,18 @@ public unsafe partial class Blake3
             using DeterministicMemory<uint> _ = DeterministicMemory.ProtectOnly(keyWords, BLAKE3_KEY_LEN);
             LoadKeyWords(key, keyWords);
             Initialize(self, keyWords, Blake3Flags.KEYED_HASH);
+        }
+
+        public static void InitializeDeriveKey(Blake3Context* self, byte* context, ulong contextLength)
+        {
+            Blake3Context contextHasher = default;
+            Initialize(&contextHasher, IV, Blake3Flags.DERIVE_KEY_CONTEXT);
+            Update(&contextHasher, context, contextLength);
+            byte* contextKey = stackalloc byte[BLAKE3_KEY_LEN];
+            Finalize(&contextHasher, contextKey, BLAKE3_KEY_LEN);
+            uint* contextKeyWords = stackalloc uint[BLAKE3_KEY_DWORD_LEN];
+            LoadKeyWords(contextKey, contextKeyWords);
+            Initialize(self, contextKeyWords, Blake3Flags.DERIVE_KEY_MATERIAL);
         }
 
         public static void Update(Blake3Context* self, byte* input, ulong inputLength)

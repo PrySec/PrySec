@@ -74,4 +74,6 @@ public static unsafe partial class MemoryManager
         Allocator is IAllocationTracker tracker 
         ? tracker.GetAllocationSnapshot(reset) 
         : null;
+
+    public static int MaxStackAllocSize => 4096;
 }
