@@ -35,6 +35,34 @@ public unsafe partial class Blake3 : IHashFunctionScp
         return output;
     }
 
+    public TOutputMemory ComputeHash<TData, TInputMemory, TOutputMemory, TKeyMemory>(ref TInputMemory input, ref TKeyMemory key, int outputLength)
+        where TData : unmanaged
+        where TInputMemory : IUnmanaged<TData>
+        where TOutputMemory : IUnmanaged<TOutputMemory, byte>
+        where TKeyMemory : IUnmanaged<TData>
+    {
+        if (key.ByteSize != BLAKE3_KEY_LEN)
+        {
+            throw new ArgumentOutOfRangeException(nameof(key), "key must be 32 bytes in length");
+        }
+        Blake3Context context = default;
+        using DeterministicSentinel<Blake3Context> _ = DeterministicSentinel.Protect(&context);
+        using (IMemoryAccess<byte> access = key.GetAccess<byte>())
+        {
+            Blake3Context.InitializeKeyed(&context, access.Pointer);
+        }
+        using (IMemoryAccess<byte> access = input.GetAccess<byte>())
+        {
+            Blake3Context.Update(&context, access.Pointer, access.ByteSize);
+        }
+        TOutputMemory output = TOutputMemory.Allocate(outputLength);
+        using (IMemoryAccess<byte> access = output.GetAccess())
+        {
+            Blake3Context.Finalize(&context, access.Pointer, access.ByteSize);
+        }
+        return output;
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TOutputMemory ComputeHash<TData, TInputMemory, TOutputMemory>(ref TInputMemory input)
         where TData : unmanaged
