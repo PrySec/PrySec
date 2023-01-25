@@ -21,14 +21,19 @@ public abstract unsafe class ShaScpBase<TWord> : IHashFunctionScp where TWord : 
 
     private protected abstract TOutputMemory HashCore<TOutputMemory>(ref ShaScpState state) where TOutputMemory : IUnmanaged<TOutputMemory, byte>;
 
-    private protected abstract void Initialize<T>(IUnmanaged<T> input, ref ShaScpState state) where T : unmanaged;
+    private protected abstract void Initialize(IUnmanaged input, ref ShaScpState state);
 
-    IUnmanaged<byte> IHashFunctionScp.ComputeHash<T>(ref IUnmanaged<T> input) =>
-        ComputeHash<T, IUnmanaged<T>, DeterministicMemory<byte>>(ref input);
+    public DeterministicMemory<byte> ComputeHash(IUnmanaged input) =>
+        ComputeHash<IUnmanaged, DeterministicMemory<byte>>(ref input);
 
-    public TOutputMemory ComputeHash<TData, TInputMemory, TOutputMemory>(ref TInputMemory input)
-        where TData : unmanaged
-        where TInputMemory : IUnmanaged<TData>
+    public DeterministicMemory<byte> ComputeHash<TInputMemory>(ref TInputMemory input) where TInputMemory : IUnmanaged => 
+        ComputeHash<TInputMemory, DeterministicMemory<byte>>(ref input);
+
+    public TOutputMemory ComputeHash<TOutputMemory>(IUnmanaged input) where TOutputMemory : IUnmanaged<TOutputMemory, byte> =>
+        ComputeHash<IUnmanaged, TOutputMemory>(ref input);
+
+    public TOutputMemory ComputeHash<TInputMemory, TOutputMemory>(ref TInputMemory input)
+        where TInputMemory : IUnmanaged
         where TOutputMemory : IUnmanaged<TOutputMemory, byte>
     {
         int dataLength = input.ByteSize;
@@ -74,9 +79,6 @@ public abstract unsafe class ShaScpBase<TWord> : IHashFunctionScp where TWord : 
             DataLength = dataLength;
         }
 
-        public void Free()
-        {
-            Buffer.Free();
-        }
+        public void Free() => Buffer.Free();
     }
 }

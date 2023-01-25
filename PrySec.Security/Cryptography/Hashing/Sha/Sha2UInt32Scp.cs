@@ -58,7 +58,7 @@ public abstract unsafe class Sha2UInt32Scp : ShaUInt32Scp
         for (int i = 0; i < state.BlockCount; i++)
         {
             // copy current chunk (64 bytes) into first 16 words w[0..15] of the message schedule array
-            Unsafe.CopyBlockUnaligned(messageScheduleBuffer, state.Buffer.BasePointer + (i << 4), BLOCK_SIZE);
+            Unsafe.CopyBlockUnaligned(messageScheduleBuffer, state.Buffer.DataPointer + (i << 4), BLOCK_SIZE);
 
             // Extend the first 16 words into the remaining 48 words w[16..63] of the message schedule array:
             for (j = 16; j < MESSAGE_SCHEDULE_BUFFER_LENGTH; j++)

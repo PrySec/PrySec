@@ -2,7 +2,7 @@
 using System.Runtime.CompilerServices;
 
 namespace PrySec.Security.Cryptography.Hashing.Blake3;
-public unsafe partial class Blake3
+public unsafe partial class Blake3Scp
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void LoadKeyWords(byte* key, uint* keyWords)

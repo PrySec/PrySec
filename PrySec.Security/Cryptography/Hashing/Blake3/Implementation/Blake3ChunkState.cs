@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace PrySec.Security.Cryptography.Hashing.Blake3;
-public unsafe partial class Blake3
+public unsafe partial class Blake3Scp
 {
     [StructLayout(LayoutKind.Sequential)]
     private struct Blake3ChunkState

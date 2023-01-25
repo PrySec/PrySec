@@ -10,7 +10,7 @@ using System.Runtime.Intrinsics.X86;
 
 namespace PrySec.Security.Cryptography.Hashing.Blake3;
 
-public unsafe partial class Blake3
+public unsafe partial class Blake3Scp
 {
     private class Blake3HwIntrinsicsSse41 : IBlake3Implementation
     {
@@ -151,18 +151,6 @@ public unsafe partial class Blake3
             *row2 = Sse2.Shuffle(*row2, AvxPrimitives._MM_SHUFFLE(2, 1, 0, 3));
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="rows"></param>
-        /// <param name="cv"></param>
-        /// <param name="block"></param>
-        /// <param name="blockLength"></param>
-        /// <param name="counter"></param>
-        /// <param name="flags"></param>
-        /// <remarks>
-        /// WORKS
-        /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void CompressPre(Vector128<uint>* rows, uint* cv, byte* block, uint blockLength, ulong counter, Blake3Flags flags)
         {

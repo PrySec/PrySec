@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace PrySec.Security.Cryptography.Hashing.Blake3;
 
-public unsafe partial class Blake3
+public unsafe partial class Blake3Scp
 {
     private interface IBlake3Implementation
     {

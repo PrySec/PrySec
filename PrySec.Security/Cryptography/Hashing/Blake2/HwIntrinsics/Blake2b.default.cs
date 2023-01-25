@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 
 namespace PrySec.Security.Cryptography.Hashing.Blake2;
 
-public unsafe partial class Blake2b
+public unsafe partial class Blake2bScp
 {
     private static class Blake2HwIntrinsicsDefault
     {

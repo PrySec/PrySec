@@ -11,7 +11,7 @@ using System.Runtime.Intrinsics.X86;
 
 namespace PrySec.Security.Cryptography.Hashing.Blake3;
 
-public unsafe partial class Blake3
+public unsafe partial class Blake3Scp
 {
     public const string BLAKE3_VERSION = "1.3.1";
 
@@ -61,7 +61,7 @@ public unsafe partial class Blake3
     private static delegate*<byte**, ulong, uint, uint*, ulong, bool, Blake3Flags, Blake3Flags, Blake3Flags, byte*, void> _hashManyImpl;
     private static delegate*<uint*, byte*, uint, ulong, Blake3Flags, byte*, void> _compressXofImpl;
 
-    static Blake3()
+    static Blake3Scp()
     {
         MAX_SIMD_DEGREE = RuntimeInformation.OSArchitecture switch
         {

@@ -12,25 +12,25 @@ public abstract unsafe class ShaUInt32Scp : ShaScpBase<uint>
     {
     }
 
-    private protected override void Initialize<T>(IUnmanaged<T> input, ref ShaScpState state)
+    private protected override void Initialize(IUnmanaged input, ref ShaScpState state)
     {
         if (input.ByteSize > 0)
         {
-            using IMemoryAccess<T> memoryAccess = input.GetAccess();
-            Unsafe.CopyBlockUnaligned(state.Buffer.BasePointer, memoryAccess.Pointer, memoryAccess.ByteSize);
+            using IMemoryAccess<byte> memoryAccess = input.GetAccess<byte>();
+            Unsafe.CopyBlockUnaligned(state.Buffer.DataPointer, memoryAccess.Pointer, memoryAccess.ByteSize);
         }
 
         // append padding
-        ((byte*)state.Buffer.BasePointer)[state.DataLength] = 0x80;
+        ((byte*)state.Buffer.DataPointer)[state.DataLength] = 0x80;
 
         // calculate length of original message in bits
         // write message length as 64 bit big endian unsigned integer to the end of the buffer
-        *(ulong*)(state.Buffer.BasePointer + state.Buffer.Count - 2) = (UInt64BE_T)((ulong)state.DataLength << 3);
+        *(ulong*)(state.Buffer.DataPointer + state.Buffer.Count - 2) = (UInt64BE_T)((ulong)state.DataLength << 3);
 
         // convert 32 bit word wise back to little endian.
         for (int i = 0; i < state.AllocatedSize; i++)
         {
-            state.Buffer.BasePointer[i] = (UInt32BE_T)state.Buffer.BasePointer[i];
+            state.Buffer.DataPointer[i] = (UInt32BE_T)state.Buffer.DataPointer[i];
         }
     }
 

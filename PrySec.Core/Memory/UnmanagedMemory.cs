@@ -1,20 +1,18 @@
 ﻿using PrySec.Core.Memory.MemoryManagement;
 using PrySec.Core.NativeTypes;
-using PrySec.Core.Primitives;
 using System;
-using System.Runtime.CompilerServices;
 
 namespace PrySec.Core.Memory;
 
 public unsafe readonly struct UnmanagedMemory<T> : IUnmanaged<UnmanagedMemory<T>, T> where T : unmanaged
 {
-    public readonly IntPtr Handle { get; }
-
     public readonly int Count { get; }
 
     public readonly Size_T ByteSize { get; }
 
-    public readonly T* BasePointer { get; }
+    public readonly void* BasePointer { get; }
+
+    public readonly T* DataPointer => (T*)BasePointer;
 
     public UnmanagedMemory<T> this[Range range]
     {
@@ -26,7 +24,7 @@ public unsafe readonly struct UnmanagedMemory<T> : IUnmanaged<UnmanagedMemory<T>
                 throw new ArgumentOutOfRangeException(nameof(range));
             }
             UnmanagedMemory<T> deterministicSpan = new(size);
-            Unsafe.CopyBlockUnaligned(deterministicSpan.BasePointer, BasePointer + range.Start.Value, (uint)size);
+            MemoryManager.Memcpy(deterministicSpan.DataPointer, DataPointer + range.Start.Value, size);
             return deterministicSpan;
         }
     }
@@ -34,14 +32,13 @@ public unsafe readonly struct UnmanagedMemory<T> : IUnmanaged<UnmanagedMemory<T>
     public UnmanagedMemory(int count)
     {
         ByteSize = count * sizeof(T);
-        BasePointer = (T*)MemoryManager.Calloc(count, sizeof(T));
-        Handle = new IntPtr(BasePointer);
+        BasePointer = MemoryManager.Calloc(count, sizeof(T));
         Count = count;
     }
 
     public void Dispose()
     {
-        if (Handle != IntPtr.Zero)
+        if (BasePointer != null)
         {
             MemoryManager.Free(BasePointer);
             GC.SuppressFinalize(this);
@@ -50,9 +47,9 @@ public unsafe readonly struct UnmanagedMemory<T> : IUnmanaged<UnmanagedMemory<T>
 
     public void Free() => Dispose();
 
-    public readonly MemoryAccess<T> GetAccess() => new(BasePointer, Count);
+    public readonly MemoryAccess<T> GetAccess() => new(DataPointer, Count);
 
-    public readonly MemoryAccess<TAs> GetAccess<TAs>() where TAs : unmanaged => new((TAs*)BasePointer, ByteSize / sizeof(TAs));
+    public readonly MemoryAccess<TAs> GetAccess<TAs>() where TAs : unmanaged => new((TAs*)DataPointer, ByteSize / sizeof(TAs));
 
     readonly IMemoryAccess<TAs> IUnmanaged.GetAccess<TAs>() => GetAccess<TAs>();
 
@@ -63,7 +60,7 @@ public unsafe readonly struct UnmanagedMemory<T> : IUnmanaged<UnmanagedMemory<T>
     public static UnmanagedMemory<T> CreateFrom(ReadOnlySpan<T> data)
     {
         UnmanagedMemory<T> span = UnmanagedMemory<T>.Allocate(data.Length);
-        Span<T> destination = new(span.BasePointer, span.Count);
+        Span<T> destination = new(span.DataPointer, span.Count);
         data.CopyTo(destination);
         return span;
     }

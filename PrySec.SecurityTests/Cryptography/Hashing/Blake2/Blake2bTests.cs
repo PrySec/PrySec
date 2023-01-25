@@ -8,11 +8,11 @@ namespace PrySec.Security.Cryptography.Hashing.Blake2.Tests;
 [TestClass]
 public class Blake2bTests : BaseTest
 {
-    private static readonly Blake2b _blake;
+    private static readonly Blake2bScp _blake;
 
     static Blake2bTests()
     {
-        _blake = new Blake2b();
+        _blake = new Blake2bScp();
         if (MemoryManager.Allocator is IAllocationTracker tracker)
         {
             tracker.Clear();

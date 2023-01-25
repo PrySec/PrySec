@@ -7,7 +7,7 @@ using System.Runtime.Intrinsics.X86;
 
 namespace PrySec.Security.Cryptography.Hashing.Blake2;
 
-public unsafe partial class Blake2b
+public unsafe partial class Blake2bScp
 {
     private static class Blake2HwIntrinsicsAvx2
     {

@@ -12,8 +12,16 @@
     <None Remove="MemoryProtection\Native\Posix\**" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Remove="MemoryProtection\Portable\Sentinels\DeterministicSentinelFactory.cs~RFdf5a48.TMP" />
+  </ItemGroup>
+
 	<ItemGroup>
     <ProjectReference Include="..\PrySec.Core\PrySec.Core.csproj" />
   </ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="Cryptography\Encryption\Blake3XofOtp\" />
+	</ItemGroup>
 
 </Project>

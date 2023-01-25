@@ -21,7 +21,7 @@ public unsafe class DPApiEncryptedMemory<T> : IProtectedMemoryFactory<DPApiEncry
             Count = count;
             ByteSize = count * sizeof(T);
             NativeByteSize = DPApiNativeShim.RoundToNextBlockSize(ByteSize);
-            BasePointer = (T*)MemoryManager.Malloc(NativeByteSize);
+            BasePointer = MemoryManager.Malloc(NativeByteSize);
             NativeHandle = new nint(BasePointer);
             MemoryManager.ZeroMemory(BasePointer, ByteSize);
             this.As<IProtectedResource>().Protect();
@@ -54,7 +54,9 @@ public unsafe class DPApiEncryptedMemory<T> : IProtectedMemoryFactory<DPApiEncry
 
     public nint NativeHandle { get; private set; }
 
-    public unsafe T* BasePointer { get; private set; }
+    public void* BasePointer { get; private set; }
+
+    public T* DataPointer => (T*)BasePointer;
 
     public int Count { get; }
 
@@ -65,8 +67,6 @@ public unsafe class DPApiEncryptedMemory<T> : IProtectedMemoryFactory<DPApiEncry
     internal ProtectionState State { get; set; } = ProtectionState.Unprotected;
 
     ProtectionState IProtectedResource.State => State;
-
-    void* IProtectedMemoryProxy.BasePointerInternal => BasePointer;
 
     public static DPApiEncryptedMemory<T> Allocate(Size_T count) => count == 0 
         ? new DPApiEncryptedMemoryZeroAlloc<T>() 

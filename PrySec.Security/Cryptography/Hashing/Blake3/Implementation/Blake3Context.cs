@@ -6,10 +6,9 @@ using PrySec.Security.MemoryProtection.Portable;
 using PrySec.Security.MemoryProtection.Portable.Sentinels;
 using System;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 namespace PrySec.Security.Cryptography.Hashing.Blake3;
-public unsafe partial class Blake3
+public unsafe partial class Blake3Scp
 {
     private struct Blake3Context
     {
@@ -30,10 +29,9 @@ public unsafe partial class Blake3
             self->CvStackLength = 0;
         }
 
-        public static void Initialize(Blake3Context* self)
-        {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Initialize(Blake3Context* self) => 
             Initialize(self, IV, Blake3Flags.NONE);
-        }
 
         public static void InitializeKeyed(Blake3Context* self, byte* key)
         {
@@ -77,7 +75,7 @@ public unsafe partial class Blake3
                 if (inputLength > 0)
                 {
                     Output_T output = default;
-                    using DeterministicSentinel<Output_T> _ = DeterministicSentinel.Protect(&output);
+                    using DeterministicSentinel<Output_T> _ = DeterministicSentinel.Protect(&output, 1);
                     Blake3ChunkState.ToOutput(&self->Chunk, &output);
                     byte* chunkCv = stackalloc byte[BLAKE3_OUT_LEN];
                     using DeterministicMemory<byte> _2 = DeterministicMemory.ProtectOnly(chunkCv, BLAKE3_OUT_LEN);
@@ -143,7 +141,7 @@ public unsafe partial class Blake3
                     chunkState.ChunkCounter = self->Chunk.ChunkCounter;
                     Blake3ChunkState.Update(&chunkState, input, (uint)subtreeLength);
                     Output_T output = default;
-                    using DeterministicSentinel<Output_T> _ = DeterministicSentinel.Protect(&output);
+                    using DeterministicSentinel<Output_T> _ = DeterministicSentinel.Protect(&output, 1);
                     Blake3ChunkState.ToOutput(&chunkState, &output);
                     Output_T.ChainingValue(&output, cv);
                     PushCv(self, cv, chunkState.ChunkCounter);
@@ -173,17 +171,18 @@ public unsafe partial class Blake3
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Finalize(Blake3Context* self, byte* output, Size_T outputLength) =>
             FinalizeSeek(self, 0, output, outputLength);
 
-        private static void FinalizeSeek(Blake3Context* self, ulong seek, byte* output, Size_T outputLength)
+        public static void FinalizeSeek(Blake3Context* self, ulong seek, byte* output, Size_T outputLength)
         {
             if (outputLength == 0)
             {
                 return;
             }
             Output_T output_t = default;
-            DeterministicSentinel<Output_T> _ = DeterministicSentinel.Protect(&output_t);
+            DeterministicSentinel<Output_T> _ = DeterministicSentinel.Protect(&output_t, 1);
 
             // If the subtree stack is empty, then the current chunk is the root.
             if (self->CvStackLength == 0)
@@ -281,7 +280,7 @@ public unsafe partial class Blake3
                 byte* parentNode = &self->CvStack[(self->CvStackLength - 2) * BLAKE3_OUT_LEN];
                 Output_T output = default;
                 Output_T.Parent(&output, parentNode, self->Key, self->Chunk.Flags);
-                using DeterministicSentinel<Output_T> _ = DeterministicSentinel.Protect(&output);
+                using DeterministicSentinel<Output_T> _ = DeterministicSentinel.Protect(&output, 1);
                 Output_T.ChainingValue(&output, parentNode);
                 self->CvStackLength -= 1;   
             }
@@ -472,7 +471,7 @@ public unsafe partial class Blake3
                 chunkState.ChunkCounter = counter;
                 Blake3ChunkState.Update(&chunkState, input + inputPosition, (uint)(inputLength - inputPosition));
                 Output_T chunkOutput = default;
-                using DeterministicSentinel<Output_T> _ = DeterministicSentinel.Protect(&chunkOutput);
+                using DeterministicSentinel<Output_T> _ = DeterministicSentinel.Protect(&chunkOutput, 1);
                 Output_T.ChainingValue(&chunkOutput, output + chunksArrayLength * BLAKE3_OUT_LEN);
                 return chunksArrayLength + 1;
             }

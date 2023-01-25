@@ -1,27 +1,20 @@
 ﻿//#define custom
 
+using BenchmarkDotNet.Running;
 using PrySec.Core.Memory.MemoryManagement;
 using PrySec.Core.Memory.MemoryManagement.Implementations;
-using PrySec.Core.Memory.MemoryManagement.Implementations.AllocationTracking;
 using PrySec.Security.Cryptography.Hashing.Blake2;
-using PrySec.Security.Cryptography.Hashing.Blake3;
-using PrySec.Security.Cryptography.Hashing;
 using PrySec.Security.MemoryProtection.Portable;
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using PrySec.Core.HwPrimitives;
-using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
-using Testing;
 using System.Text;
-using PrySec.Core;
+using Testing;
 
 MemoryManager.UseImplementation<NativeMemoryManager>();
 
 const uint WARMUP = 10_000;
-const uint ITERATIONS = 50_000;
+const uint ITERATIONS = 500_000;
 
 unsafe
 {
@@ -30,22 +23,22 @@ unsafe
     DeterministicMemory<byte> span = DeterministicMemory<byte>.Allocate(strLength);
     fixed (char* pStr = str)
     {
-        Unsafe.CopyBlockUnaligned(span.BasePointer, pStr, (uint)strLength);
+        Unsafe.CopyBlockUnaligned(span.DataPointer, pStr, (uint)strLength);
         Console.WriteLine($"Calling Test Methods {ITERATIONS} times with additional warmup of {WARMUP} ...");
         Console.WriteLine();
         // setup
 
         // warmup
-        Blake2b b = new();
+        Blake2bScp b = new();
         for (uint i = 0; i < WARMUP; i++)
         {
-            using DeterministicMemory<byte> _ = b.ComputeHash<byte, DeterministicMemory<byte>, DeterministicMemory<byte>>(ref span);
+            using DeterministicMemory<byte> _ = b.ComputeHash(ref span);
         }
         Stopwatch stopwatch = new();
         stopwatch.Start();
         for (uint i = 0; i < ITERATIONS; i++)
         {
-            using DeterministicMemory<byte> _ = b.ComputeHash<byte, DeterministicMemory<byte>, DeterministicMemory<byte>>(ref span);
+            using DeterministicMemory<byte> _ = b.ComputeHash(ref span);
         }
         stopwatch.Stop();
         Console.WriteLine(stopwatch.Elapsed);

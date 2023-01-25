@@ -6,7 +6,7 @@ using System;
 using System.Runtime.CompilerServices;
 
 namespace PrySec.Security.Cryptography.Hashing.Blake3;
-public unsafe partial class Blake3
+public unsafe partial class Blake3Scp
 {
     private class Blake3HwIntrinsicsDefault : IBlake3Implementation
     {

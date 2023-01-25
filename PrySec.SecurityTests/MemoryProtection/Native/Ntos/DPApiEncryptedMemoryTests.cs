@@ -26,7 +26,7 @@ public unsafe class DPApiEncryptedMemoryTests : BaseTest
         using DPApiEncryptedMemory<byte> memory = GetTestString(TEST_DATA);
         byte[] rawBytes = Encoding.ASCII.GetBytes(TEST_DATA);
         Span<byte> raw = new(rawBytes);
-        Span<byte> encrypted = new(memory.BasePointer, memory.ByteSize);
+        Span<byte> encrypted = new(memory.DataPointer, memory.ByteSize);
         Assert.IsFalse(encrypted.SequenceEqual(raw));
     }
 

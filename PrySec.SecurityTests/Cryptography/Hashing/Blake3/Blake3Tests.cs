@@ -11,7 +11,7 @@ namespace PrySec.Security.Cryptography.Hashing.Blake3.Tests;
 [TestClass]
 public class Blake3Tests : BaseTest
 {
-    private static readonly Blake3 _blake;
+    private static readonly Blake3Scp _blake;
 
     const string CONTEXT = "BLAKE3 2019-12-27 16:29:52 test vectors context";
     const string KEY = "whats the Elvish word for friend";
@@ -19,7 +19,7 @@ public class Blake3Tests : BaseTest
 
     static Blake3Tests()
     {
-        _blake = new Blake3();
+        _blake = new Blake3Scp(CONTEXT);
 
         if (MemoryManager.Allocator is IAllocationTracker tracker)
         {
@@ -32,7 +32,7 @@ public class Blake3Tests : BaseTest
     {
         string input = string.Empty;
         const string expectedHash = "AF1349B9F5F9A1A6A0404DEA36DCC9499BCB25C9ADC112B7CC9A93CAE41F3262";
-        Assert.AreEqual(expectedHash, _blake.ComputeHash(input));
+        Assert.AreEqual(expectedHash, _blake.ComputeHash(input, 32));
     }
 
     [TestMethod]
@@ -40,7 +40,7 @@ public class Blake3Tests : BaseTest
     {
         const string input = "asdf";
         const string expectedHash = "9E70EE1449965FB62D049040A1ED06EC377430DA6EC13173E7C4FFFCD28BE980";
-        Assert.AreEqual(expectedHash, _blake.ComputeHash(input));
+        Assert.AreEqual(expectedHash, _blake.ComputeHash(input, 32));
     }
 
     [TestMethod]
@@ -48,7 +48,7 @@ public class Blake3Tests : BaseTest
     {
         string input = new('A', 4096);
         const string expectedHash = "4598E001CD6E4C4FE4AA57BB055C11F1CBE10B3E0DEF42DE0DA8EC4036500F6C";
-        Assert.AreEqual(expectedHash, _blake.ComputeHash(input));
+        Assert.AreEqual(expectedHash, _blake.ComputeHash(input, 32));
     }
 
     [TestMethod]
@@ -56,7 +56,7 @@ public class Blake3Tests : BaseTest
     {
         string input = new('A', 100_000);
         const string expectedHash = "AC0322EE66C770A7342777BE95BA8FEAE791AFC681F100E430732DD8D37B0E5B";
-        Assert.AreEqual(expectedHash, _blake.ComputeHash(input));
+        Assert.AreEqual(expectedHash, _blake.ComputeHash(input, 32));
     }
 
     [TestMethod]
@@ -381,15 +381,15 @@ public class Blake3Tests : BaseTest
         int bytes = Encoding.ASCII.GetBytes(KEY, key.AsSpan());
         Assert.AreEqual(32, bytes);
 
-        using DeterministicMemory<byte> actualHashData = _blake.ComputeHash<byte, DeterministicMemory<byte>, DeterministicMemory<byte>>(ref input, OUTPUT_LENGTH);
+        using DeterministicMemory<byte> actualHashData = _blake.ComputeHash(ref input, OUTPUT_LENGTH);
         string actualHash = ToLowerHex(actualHashData);
         Assert.AreEqual(hash, actualHash);
 
-        using DeterministicMemory<byte> actualKeyedData = _blake.ComputeHash<byte, DeterministicMemory<byte>, DeterministicMemory<byte>, DeterministicMemory<byte>>(ref input, ref key, OUTPUT_LENGTH);
+        using DeterministicMemory<byte> actualKeyedData = _blake.ComputeHashKeyed(ref input, ref key, OUTPUT_LENGTH);
         string actualKeyedHash = ToLowerHex(actualKeyedData);
         Assert.AreEqual(keyedHash, actualKeyedHash);
 
-        using DeterministicMemory<byte> actualDerivedData = _blake.DeriveKey<byte, DeterministicMemory<byte>, DeterministicMemory<byte>>(ref input, CONTEXT, OUTPUT_LENGTH);
+        using DeterministicMemory<byte> actualDerivedData = _blake.DeriveKey(ref input, OUTPUT_LENGTH);
         string actualDerivedKey = ToLowerHex(actualDerivedData);
         Assert.AreEqual(deriveKey, actualDerivedKey);
 
@@ -404,12 +404,12 @@ public class Blake3Tests : BaseTest
         {
             for (int j = 0; j < 251 && i < length; j++, i++)
             {
-                input.BasePointer[i] = (byte)j;
+                input.DataPointer[i] = (byte)j;
             }
         }
         return input;
     }
 
     private static unsafe string ToLowerHex(DeterministicMemory<byte> data) =>
-        Convert.ToHexString(new Span<byte>(data.BasePointer, data.ByteSize)).ToLower();
+        Convert.ToHexString(new Span<byte>(data.DataPointer, data.ByteSize)).ToLower();
 }

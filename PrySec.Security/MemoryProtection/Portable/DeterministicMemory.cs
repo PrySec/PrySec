@@ -1,11 +1,8 @@
-﻿using PrySec.Core;
-using PrySec.Core.Memory;
+﻿using PrySec.Core.Memory;
 using PrySec.Core.Memory.MemoryManagement;
 using PrySec.Core.NativeTypes;
-using PrySec.Core.Primitives;
 using System;
 using System.Runtime.CompilerServices;
-using System.Xml.Linq;
 
 namespace PrySec.Security.MemoryProtection.Portable;
 
@@ -15,7 +12,9 @@ public unsafe readonly struct DeterministicMemory<T> : IProtectedMemoryFactory<D
 
     public readonly Size_T ByteSize { get; }
 
-    public readonly T* BasePointer { get; }
+    public readonly T* DataPointer => (T*)BasePointer;
+
+    public readonly void* BasePointer { get; }
 
     public readonly IntPtr NativeHandle { get; }
 
@@ -36,7 +35,7 @@ public unsafe readonly struct DeterministicMemory<T> : IProtectedMemoryFactory<D
                 throw new ArgumentOutOfRangeException(nameof(range));
             }
             DeterministicMemory<T> deterministicSpan = new(count);
-            MemoryManager.Memcpy(deterministicSpan.BasePointer, BasePointer + range.Start.Value, count * sizeof(T));
+            MemoryManager.Memcpy(deterministicSpan.DataPointer, DataPointer + range.Start.Value, count * sizeof(T));
             return deterministicSpan;
         }
     }
@@ -45,9 +44,9 @@ public unsafe readonly struct DeterministicMemory<T> : IProtectedMemoryFactory<D
     {
         ByteSize = count * sizeof(T);
         Count = count;
-        BasePointer = (T*)MemoryManager.Calloc(count, sizeof(T));
+        BasePointer = MemoryManager.Calloc(count, sizeof(T));
         WillFreeAllocatedMemory = true;
-        NativeHandle = new IntPtr(BasePointer);
+        NativeHandle = new IntPtr(DataPointer);
     }
 
     private DeterministicMemory(T* basePointer, int byteSize, bool willFreeAllocatedMemory)
@@ -55,39 +54,39 @@ public unsafe readonly struct DeterministicMemory<T> : IProtectedMemoryFactory<D
         ByteSize = byteSize;
         Count = byteSize / sizeof(T);
         BasePointer = basePointer;
-        NativeHandle = new IntPtr(BasePointer);
+        NativeHandle = new IntPtr(DataPointer);
         WillFreeAllocatedMemory = willFreeAllocatedMemory;
     }
 
     public readonly void Dispose()
     {
-        if (BasePointer != null)
+        if (DataPointer != null)
         {
             ZeroMemory();
             if (WillFreeAllocatedMemory)
             {
-                MemoryManager.Free(BasePointer);
+                MemoryManager.Free(DataPointer);
             }
         }
     }
 
-    public Span<T> AsSpan() => new(BasePointer, Count);
+    public Span<T> AsSpan() => new(DataPointer, Count);
 
     public void Free() => Dispose();
 
-    public readonly MemoryAccess<T> GetAccess() => new(BasePointer, Count);
+    public readonly MemoryAccess<T> GetAccess() => new(DataPointer, Count);
 
     readonly IMemoryAccess<T> IUnmanaged<T>.GetAccess() => GetAccess();
 
-    public readonly void ZeroMemory() => Unsafe.InitBlockUnaligned(BasePointer, 0, ByteSize);
+    public readonly void ZeroMemory() => Unsafe.InitBlockUnaligned(DataPointer, 0, ByteSize);
 
     public DeterministicMemory<TNew> As<TNew>() where TNew : unmanaged =>
-        new((TNew*)BasePointer, ByteSize, false);
+        new((TNew*)DataPointer, ByteSize, false);
 
     public static DeterministicMemory<T> Allocate(Size_T count) => new(count);
 
     public readonly MemoryAccess<TAs> GetAccess<TAs>() where TAs : unmanaged => 
-        new((TAs*)BasePointer, ByteSize / sizeof(TAs));
+        new((TAs*)DataPointer, ByteSize / sizeof(TAs));
 
     readonly IMemoryAccess<TAs> IUnmanaged.GetAccess<TAs>() => GetAccess<TAs>();
 
@@ -97,7 +96,7 @@ public unsafe readonly struct DeterministicMemory<T> : IProtectedMemoryFactory<D
     public static DeterministicMemory<T> CreateFrom(ReadOnlySpan<T> data)
     {
         DeterministicMemory<T> span = Allocate(data.Length);
-        Span<T> destination = new(span.BasePointer, span.Count);
+        Span<T> destination = new(span.DataPointer, span.Count);
         data.CopyTo(destination);
         return span;
     }

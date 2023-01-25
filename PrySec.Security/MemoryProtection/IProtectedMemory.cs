@@ -6,6 +6,9 @@ namespace PrySec.Security.MemoryProtection;
 
 public interface IProtectedMemory<T> : IUnmanaged<T> where T : unmanaged
 {
+    /// <summary>
+    /// A native handle to the base address of this protected memory region.
+    /// </summary>
     nint NativeHandle { get; }
 
     Size_T NativeByteSize { get; }
@@ -28,8 +31,6 @@ internal interface IProtectedResource
 
 internal unsafe interface IProtectedMemoryProxy : IUnmanaged, IProtectedResource
 {
-    internal void* BasePointerInternal { get; }
-
     internal void ZeroMemory();
 }
 

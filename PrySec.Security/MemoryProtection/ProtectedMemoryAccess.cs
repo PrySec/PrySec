@@ -14,7 +14,7 @@ internal unsafe readonly struct ProtectedMemoryAccess<TProtectedMemoryProxy, TDa
     public ProtectedMemoryAccess(TProtectedMemoryProxy proxy)
     {
         _proxy = proxy;
-        Pointer = (TData*)proxy.BasePointerInternal;
+        Pointer = (TData*)proxy.BasePointer;
         Count = proxy.ByteSize / sizeof(TData);
         _proxy.Unprotect();
     }

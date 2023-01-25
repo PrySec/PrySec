@@ -10,14 +10,25 @@ public unsafe interface IUnmanaged : IDisposable
 {
     void Free();
 
+    /// <summary>
+    /// The size in bytes of the client-usable memory region of this unmanaged allocation.
+    /// </summary>
     Size_T ByteSize { get; }
+
+    /// <summary>
+    /// An untyped pointer to the base address of the client-usable memory region of this unmanaged allocation.
+    /// </summary>
+    void* BasePointer { get; }
 
     IMemoryAccess<TAs> GetAccess<TAs>() where TAs : unmanaged;
 }
 
 public unsafe interface IUnmanaged<TData> : IUnmanaged where TData : unmanaged
 {
-    TData* BasePointer { get; }
+    /// <summary>
+    /// A typed version of the <see cref="IUnmanaged.BasePointer"/> to the base address of the client-usable memory region of this unmanaged allocation.
+    /// </summary>
+    TData* DataPointer { get; }
 
     int Count { get; }
 

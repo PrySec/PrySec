@@ -12,9 +12,11 @@ namespace PrySec.Security.MemoryProtection.Portable.Sentinels;
 /// <typeparam name="T"></typeparam>
 public unsafe readonly struct DeterministicSentinel<T> : IProtectedMemory<T> where T : unmanaged
 {
-    public T* BasePointer { get; }
+    public T* DataPointer => (T*)BasePointer;
 
-    public int Count => 1;
+    public void* BasePointer { get; }
+
+    public int Count { get; }
 
     public Size_T ByteSize { get; }
 
@@ -22,16 +24,17 @@ public unsafe readonly struct DeterministicSentinel<T> : IProtectedMemory<T> whe
 
     public Size_T NativeByteSize => ByteSize;
 
-    public DeterministicSentinel(T* basePointer, Size_T byteSize)
+    public DeterministicSentinel(T* basePointer, Size_T elementCount)
     {
         BasePointer = basePointer;
-        ByteSize = byteSize;
+        ByteSize = sizeof(T) * elementCount;
+        Count = elementCount;
         NativeHandle = new IntPtr(basePointer);
     }
 
     public void Dispose()
     {
-        if (BasePointer != null)
+        if (DataPointer != null)
         {
             ZeroMemory();
         }
@@ -39,14 +42,14 @@ public unsafe readonly struct DeterministicSentinel<T> : IProtectedMemory<T> whe
 
     public void Free() => Dispose();
 
-    public void ZeroMemory() => MemoryManager.ZeroMemory(BasePointer, Count);
+    public void ZeroMemory() => MemoryManager.ZeroMemory(DataPointer, Count);
 
     public readonly MemoryAccess<TAs> GetAccess<TAs>() where TAs : unmanaged =>
-        new((TAs*)BasePointer, ByteSize / sizeof(TAs));
+        new((TAs*)DataPointer, ByteSize / sizeof(TAs));
 
     readonly IMemoryAccess<TAs> IUnmanaged.GetAccess<TAs>() => GetAccess<TAs>();
 
-    public readonly MemoryAccess<T> GetAccess() => new(BasePointer, Count);
+    public readonly MemoryAccess<T> GetAccess() => new(DataPointer, Count);
 
     readonly IMemoryAccess<T> IUnmanaged<T>.GetAccess() => GetAccess();
 }
