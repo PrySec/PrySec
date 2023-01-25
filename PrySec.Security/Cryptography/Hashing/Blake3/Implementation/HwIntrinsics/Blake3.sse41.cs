@@ -467,22 +467,22 @@ internal unsafe class Blake3HwIntrinsicsSse41 : IBlake3Implementation
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void TransposeMessageVectors(byte** inputs, uint blockOffset, Vector128<uint>* output)
     {
-        output[0] = Sse2.LoadVector128((uint*)&inputs[0][blockOffset + 0 * VECTOR_SIZE]);
-        output[1] = Sse2.LoadVector128((uint*)&inputs[1][blockOffset + 0 * VECTOR_SIZE]);
-        output[2] = Sse2.LoadVector128((uint*)&inputs[2][blockOffset + 0 * VECTOR_SIZE]);
-        output[3] = Sse2.LoadVector128((uint*)&inputs[3][blockOffset + 0 * VECTOR_SIZE]);
-        output[4] = Sse2.LoadVector128((uint*)&inputs[0][blockOffset + 1 * VECTOR_SIZE]);
-        output[5] = Sse2.LoadVector128((uint*)&inputs[1][blockOffset + 1 * VECTOR_SIZE]);
-        output[6] = Sse2.LoadVector128((uint*)&inputs[2][blockOffset + 1 * VECTOR_SIZE]);
-        output[7] = Sse2.LoadVector128((uint*)&inputs[3][blockOffset + 1 * VECTOR_SIZE]);
-        output[8] = Sse2.LoadVector128((uint*)&inputs[0][blockOffset + 2 * VECTOR_SIZE]);
-        output[9] = Sse2.LoadVector128((uint*)&inputs[1][blockOffset + 2 * VECTOR_SIZE]);
-        output[10] = Sse2.LoadVector128((uint*)&inputs[2][blockOffset + 2 * VECTOR_SIZE]);
-        output[11] = Sse2.LoadVector128((uint*)&inputs[3][blockOffset + 2 * VECTOR_SIZE]);
-        output[12] = Sse2.LoadVector128((uint*)&inputs[0][blockOffset + 3 * VECTOR_SIZE]);
-        output[13] = Sse2.LoadVector128((uint*)&inputs[1][blockOffset + 3 * VECTOR_SIZE]);
-        output[14] = Sse2.LoadVector128((uint*)&inputs[2][blockOffset + 3 * VECTOR_SIZE]);
-        output[15] = Sse2.LoadVector128((uint*)&inputs[3][blockOffset + 3 * VECTOR_SIZE]);
+        output[0] = Sse2.LoadVector128((uint*)&inputs[0][blockOffset + (0 * VECTOR_SIZE)]);
+        output[1] = Sse2.LoadVector128((uint*)&inputs[1][blockOffset + (0 * VECTOR_SIZE)]);
+        output[2] = Sse2.LoadVector128((uint*)&inputs[2][blockOffset + (0 * VECTOR_SIZE)]);
+        output[3] = Sse2.LoadVector128((uint*)&inputs[3][blockOffset + (0 * VECTOR_SIZE)]);
+        output[4] = Sse2.LoadVector128((uint*)&inputs[0][blockOffset + (1 * VECTOR_SIZE)]);
+        output[5] = Sse2.LoadVector128((uint*)&inputs[1][blockOffset + (1 * VECTOR_SIZE)]);
+        output[6] = Sse2.LoadVector128((uint*)&inputs[2][blockOffset + (1 * VECTOR_SIZE)]);
+        output[7] = Sse2.LoadVector128((uint*)&inputs[3][blockOffset + (1 * VECTOR_SIZE)]);
+        output[8] = Sse2.LoadVector128((uint*)&inputs[0][blockOffset + (2 * VECTOR_SIZE)]);
+        output[9] = Sse2.LoadVector128((uint*)&inputs[1][blockOffset + (2 * VECTOR_SIZE)]);
+        output[10] = Sse2.LoadVector128((uint*)&inputs[2][blockOffset + (2 * VECTOR_SIZE)]);
+        output[11] = Sse2.LoadVector128((uint*)&inputs[3][blockOffset + (2 * VECTOR_SIZE)]);
+        output[12] = Sse2.LoadVector128((uint*)&inputs[0][blockOffset + (3 * VECTOR_SIZE)]);
+        output[13] = Sse2.LoadVector128((uint*)&inputs[1][blockOffset + (3 * VECTOR_SIZE)]);
+        output[14] = Sse2.LoadVector128((uint*)&inputs[2][blockOffset + (3 * VECTOR_SIZE)]);
+        output[15] = Sse2.LoadVector128((uint*)&inputs[3][blockOffset + (3 * VECTOR_SIZE)]);
         for (int i = 0; i < 4; ++i)
         {
             // TODO why prefetch the input into all cache levels and not the output?

@@ -102,7 +102,7 @@ internal unsafe class Blake3HwIntrinsicsDefault : IBlake3Implementation
     private static void RoundFunction(uint* state, uint* msg, Size_T round, byte* scheduleBase)
     {
         // Select the message schedule based on the round.
-        byte* schedule = scheduleBase + round * 16;
+        byte* schedule = scheduleBase + (round * 16);
 
         // Mix the columns.
         G(state, 0, 4, 8, 12, msg[schedule[0]], msg[schedule[1]]);

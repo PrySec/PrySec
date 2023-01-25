@@ -27,10 +27,10 @@ public unsafe readonly struct Array2d<T> where T : unmanaged
     public T this[uint row, uint column]
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _basePointer[Columns * row + column];
+        get => _basePointer[(Columns * row) + column];
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        set => _basePointer[Columns * row + column] = value;
+        set => _basePointer[(Columns * row) + column] = value;
     }
 
     public static implicit operator T*(Array2d<T> array) => array._basePointer;

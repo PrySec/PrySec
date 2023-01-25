@@ -238,26 +238,26 @@ internal unsafe class Blake3HwIntrinsicsAvx2 : IBlake3Implementation
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void TransposeMessageVectors(byte** inputs, uint blockOffset, Vector256<uint>* output)
     {
-        output[0] = Avx.LoadVector256((uint*)(inputs[0] + blockOffset + 0 * VECTOR_SIZE));
-        output[1] = Avx.LoadVector256((uint*)(inputs[1] + blockOffset + 0 * VECTOR_SIZE));
-        output[2] = Avx.LoadVector256((uint*)(inputs[2] + blockOffset + 0 * VECTOR_SIZE));
-        output[3] = Avx.LoadVector256((uint*)(inputs[3] + blockOffset + 0 * VECTOR_SIZE));
-        output[4] = Avx.LoadVector256((uint*)(inputs[4] + blockOffset + 0 * VECTOR_SIZE));
-        output[5] = Avx.LoadVector256((uint*)(inputs[5] + blockOffset + 0 * VECTOR_SIZE));
-        output[6] = Avx.LoadVector256((uint*)(inputs[6] + blockOffset + 0 * VECTOR_SIZE));
-        output[7] = Avx.LoadVector256((uint*)(inputs[7] + blockOffset + 0 * VECTOR_SIZE));
-        output[8] = Avx.LoadVector256((uint*)(inputs[0] + blockOffset + 1 * VECTOR_SIZE));
-        output[9] = Avx.LoadVector256((uint*)(inputs[1] + blockOffset + 1 * VECTOR_SIZE));
-        output[10] = Avx.LoadVector256((uint*)(inputs[2] + blockOffset + 1 * VECTOR_SIZE));
-        output[11] = Avx.LoadVector256((uint*)(inputs[3] + blockOffset + 1 * VECTOR_SIZE));
-        output[12] = Avx.LoadVector256((uint*)(inputs[4] + blockOffset + 1 * VECTOR_SIZE));
-        output[13] = Avx.LoadVector256((uint*)(inputs[5] + blockOffset + 1 * VECTOR_SIZE));
-        output[14] = Avx.LoadVector256((uint*)(inputs[6] + blockOffset + 1 * VECTOR_SIZE));
-        output[15] = Avx.LoadVector256((uint*)(inputs[7] + blockOffset + 1 * VECTOR_SIZE));
+        output[0] = Avx.LoadVector256((uint*)(inputs[0] + blockOffset + (0 * VECTOR_SIZE)));
+        output[1] = Avx.LoadVector256((uint*)(inputs[1] + blockOffset + (0 * VECTOR_SIZE)));
+        output[2] = Avx.LoadVector256((uint*)(inputs[2] + blockOffset + (0 * VECTOR_SIZE)));
+        output[3] = Avx.LoadVector256((uint*)(inputs[3] + blockOffset + (0 * VECTOR_SIZE)));
+        output[4] = Avx.LoadVector256((uint*)(inputs[4] + blockOffset + (0 * VECTOR_SIZE)));
+        output[5] = Avx.LoadVector256((uint*)(inputs[5] + blockOffset + (0 * VECTOR_SIZE)));
+        output[6] = Avx.LoadVector256((uint*)(inputs[6] + blockOffset + (0 * VECTOR_SIZE)));
+        output[7] = Avx.LoadVector256((uint*)(inputs[7] + blockOffset + (0 * VECTOR_SIZE)));
+        output[8] = Avx.LoadVector256((uint*)(inputs[0] + blockOffset + (1 * VECTOR_SIZE)));
+        output[9] = Avx.LoadVector256((uint*)(inputs[1] + blockOffset + (1 * VECTOR_SIZE)));
+        output[10] = Avx.LoadVector256((uint*)(inputs[2] + blockOffset + (1 * VECTOR_SIZE)));
+        output[11] = Avx.LoadVector256((uint*)(inputs[3] + blockOffset + (1 * VECTOR_SIZE)));
+        output[12] = Avx.LoadVector256((uint*)(inputs[4] + blockOffset + (1 * VECTOR_SIZE)));
+        output[13] = Avx.LoadVector256((uint*)(inputs[5] + blockOffset + (1 * VECTOR_SIZE)));
+        output[14] = Avx.LoadVector256((uint*)(inputs[6] + blockOffset + (1 * VECTOR_SIZE)));
+        output[15] = Avx.LoadVector256((uint*)(inputs[7] + blockOffset + (1 * VECTOR_SIZE)));
 
         for (int i = 0; i < 8; i++)
         {
-            // TODO why prefetch the input into all cache levels and not the output?
+            // TODO: why prefetch the input into all cache levels when were now working with the output?
             Sse.Prefetch0(inputs[i] + blockOffset + 256);
         }
         TransposeVectors(output);
@@ -334,14 +334,14 @@ internal unsafe class Blake3HwIntrinsicsAvx2 : IBlake3Implementation
         }
 
         TransposeVectors(v);
-        Avx.Store(output + 0 * VECTOR_SIZE, v[0].AsByte());
-        Avx.Store(output + 1 * VECTOR_SIZE, v[1].AsByte());
-        Avx.Store(output + 2 * VECTOR_SIZE, v[2].AsByte());
-        Avx.Store(output + 3 * VECTOR_SIZE, v[3].AsByte());
-        Avx.Store(output + 4 * VECTOR_SIZE, v[4].AsByte());
-        Avx.Store(output + 5 * VECTOR_SIZE, v[5].AsByte());
-        Avx.Store(output + 6 * VECTOR_SIZE, v[6].AsByte());
-        Avx.Store(output + 7 * VECTOR_SIZE, v[7].AsByte());
+        Avx.Store(output + (0 * VECTOR_SIZE), v[0].AsByte());
+        Avx.Store(output + (1 * VECTOR_SIZE), v[1].AsByte());
+        Avx.Store(output + (2 * VECTOR_SIZE), v[2].AsByte());
+        Avx.Store(output + (3 * VECTOR_SIZE), v[3].AsByte());
+        Avx.Store(output + (4 * VECTOR_SIZE), v[4].AsByte());
+        Avx.Store(output + (5 * VECTOR_SIZE), v[5].AsByte());
+        Avx.Store(output + (6 * VECTOR_SIZE), v[6].AsByte());
+        Avx.Store(output + (7 * VECTOR_SIZE), v[7].AsByte());
     }
     #endregion private methods
 }
