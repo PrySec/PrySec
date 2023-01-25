@@ -20,8 +20,4 @@
     <ProjectReference Include="..\PrySec.Core\PrySec.Core.csproj" />
   </ItemGroup>
 
-	<ItemGroup>
-	  <Folder Include="Cryptography\Encryption\Blake3XofOtp\" />
-	</ItemGroup>
-
 </Project>

@@ -1,6 +1,7 @@
 ﻿using PrySec.Core.Memory;
 using PrySec.Core.Memory.MemoryManagement;
 using PrySec.Core.NativeTypes;
+using PrySec.Security.Cryptography.Hashing.Blake3.Implementation;
 using PrySec.Security.MemoryProtection.Portable;
 using PrySec.Security.MemoryProtection.Portable.Sentinels;
 using System;
@@ -9,7 +10,7 @@ using System.Text;
 
 namespace PrySec.Security.Cryptography.Hashing.Blake3;
 
-public unsafe partial class Blake3Scp : IVariableLengthKeyedHashFunctionScp, IKeyDerivationFunctionScp
+public unsafe partial class Blake3Scp : Blake3__EffectiveArch, IVariableLengthKeyedHashFunctionScp, IKeyDerivationFunctionScp
 {
     public string KeyDerivationContext { get; } = "example.com 1970-01-01 00:00:00 unspecified use case";
 
@@ -156,7 +157,7 @@ public unsafe partial class Blake3Scp : IVariableLengthKeyedHashFunctionScp, IKe
         TOutputMemory output = TOutputMemory.Allocate(outputLength);
         using (IMemoryAccess<byte> access = output.GetAccess())
         {
-            Blake3Context.Finalize(&context, access.Pointer, access.ByteSize);
+            Blake3Context.Finalize(&context, access.Pointer, outputLength);
         }
         return output;
     }
