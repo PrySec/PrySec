@@ -16,7 +16,7 @@ public unsafe readonly struct DeterministicSentinel<T> : IProtectedMemory<T> whe
 
     public void* BasePointer { get; }
 
-    public int Count { get; }
+    public int Count => 1;
 
     public Size_T ByteSize { get; }
 
@@ -24,11 +24,10 @@ public unsafe readonly struct DeterministicSentinel<T> : IProtectedMemory<T> whe
 
     public Size_T NativeByteSize => ByteSize;
 
-    public DeterministicSentinel(T* basePointer, Size_T elementCount)
+    public DeterministicSentinel(T* basePointer)
     {
         BasePointer = basePointer;
-        ByteSize = sizeof(T) * elementCount;
-        Count = elementCount;
+        ByteSize = sizeof(T);
         NativeHandle = new IntPtr(basePointer);
     }
 

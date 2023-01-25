@@ -120,7 +120,7 @@ public unsafe partial class Blake2bScp : IVariableLengthKeyedHashFunctionScp
         where TOutputMemory : IUnmanaged<TOutputMemory, byte>
     {
         ulong* hash = stackalloc ulong[8];
-        using DeterministicSentinel<ulong> hashSentinel = DeterministicSentinel.Protect(hash, 8);
+        using DeterministicMemory<ulong> hashSentinel = DeterministicMemory.ProtectOnly(hash, 8 * sizeof(ulong));
         Blake2State<TInputMemory> state = new(input, hash, 0u, outputLength);
         Initialize(ref state);
         TOutputMemory result = HashCore<TInputMemory, TOutputMemory>(ref state);
@@ -150,7 +150,7 @@ public unsafe partial class Blake2bScp : IVariableLengthKeyedHashFunctionScp
             MemoryManager.Memcpy(paddedInput.DataPointer + keyLength, access.Pointer, access.ByteSize);
         }
         ulong* hash = stackalloc ulong[8];
-        using DeterministicSentinel<ulong> hashSentinel = DeterministicSentinel.Protect(hash, 8);
+        using DeterministicMemory<ulong> hashSentinel = DeterministicMemory.ProtectOnly(hash, 8 * sizeof(ulong));
 
         Blake2State<DeterministicMemory<byte>> state = new(paddedInput, hash, keyLength, outputLength);
         Initialize(ref state);

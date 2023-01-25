@@ -1,5 +1,4 @@
 ﻿using PrySec.Core.Extensions;
-using PrySec.Core.Interop.Ntos;
 using PrySec.Core.Memory;
 using PrySec.Core.Memory.MemoryManagement;
 using PrySec.Core.NativeTypes;
@@ -42,7 +41,7 @@ public unsafe class DPApiEncryptedMemory<T> : IProtectedMemoryFactory<DPApiEncry
             {
                 throw new ArgumentOutOfRangeException(nameof(range));
             }
-            DPApiEncryptedMemory<T> result = new(count);
+            DPApiEncryptedMemory<T> result = Allocate(count);
             using (IMemoryAccess<T> source = GetAccess())
             using (IMemoryAccess<T> target = result.GetAccess())
             {

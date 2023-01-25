@@ -46,7 +46,7 @@ internal unsafe struct Blake3Output
         Make(raw, key, block, (byte)BLAKE3_BLOCK_LEN, 0, flags | Blake3Flags.PARENT);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void RootBytes(Blake3Output* self, ulong seek, byte* output, Size_T outputLength)
+    public static void RootBytes(Blake3Output* self, Blake3Context* context, ulong seek, byte* output, Size_T outputLength)
     {
         ulong outputBlockCounter = seek / BLAKE3_BLOCK_LEN;
 
@@ -67,7 +67,7 @@ internal unsafe struct Blake3Output
             nuint memcpyLength = outputLength > availableBytes
                 ? availableBytes
                 : (nuint)outputLength;
-            MemoryManager.Memcpy(output, wideBuffer + offsetWithinBlock, memcpyLength);
+            context->BlockFinalizerFunction(output, wideBuffer + offsetWithinBlock, memcpyLength);
             output += memcpyLength;
             outputLength -= memcpyLength;
             outputBlockCounter++;

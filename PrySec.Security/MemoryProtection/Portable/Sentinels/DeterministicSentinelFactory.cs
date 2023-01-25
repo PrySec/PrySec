@@ -1,7 +1,9 @@
 ﻿using PrySec.Core.NativeTypes;
+using System.Runtime.CompilerServices;
 
 namespace PrySec.Security.MemoryProtection.Portable.Sentinels;
 public static unsafe class DeterministicSentinel
 {
-    public static DeterministicSentinel<T> Protect<T>(T* target, Size_T elementCount) where T : unmanaged => new(target, elementCount);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static DeterministicSentinel<T> Protect<T>(T* target) where T : unmanaged => new(target);
 }

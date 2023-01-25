@@ -1,47 +1,30 @@
-﻿using PrySec.Core.Memory.MemoryManagement;
+﻿using PrySec.Core.Memory;
+using PrySec.Core.NativeTypes;
+using PrySec.Security.Cryptography.Encryption.Blake3XofOtp.Implementation;
+using PrySec.Security.Cryptography.Hashing.Blake3;
 using PrySec.Security.Cryptography.Hashing.Blake3.Implementation;
 using PrySec.Security.MemoryProtection.Portable.Sentinels;
-using System;
-using System.Text;
 
 namespace PrySec.Security.Cryptography.Encryption.Blake3XofOtp;
 
 public unsafe class Blake3XofOtpScp : Blake3__EffectiveArch
 {
-    public void ComputeInline(byte* target, nuint targetByteSize, string context)
+    private readonly string _context;
+
+    public Blake3XofOtpScp(string keyDerivationContext) => _context = keyDerivationContext;
+
+    public void ComputeInline<TKeyMemory>(ref TKeyMemory key, byte* target, Size_T targetByteSize)
+        where TKeyMemory : IUnmanaged
     {
         Blake3Context blake3 = default;
-        using DeterministicSentinel<Blake3Context> _ = DeterministicSentinel.Protect(&blake3, 1);
-        int contextByteCount = Encoding.UTF8.GetByteCount(context);
-        byte* contextBytesPtr = null;
-        bool isStackAllocation = true;
-        if (contextByteCount < MemoryManager.MaxStackAllocSize)
+        using DeterministicSentinel<Blake3Context> _ = DeterministicSentinel.Protect(&blake3);
+        Blake3Scp.InternalInitializeDeriveKeyFromContext(&blake3, _context);
+        // override finalizer function
+        blake3.BlockFinalizerFunction = Blake3XofOtpBlockFinalizer__EffectiveArch.BlockFinalizerFunction;
+        using (IMemoryAccess<byte> keyAccess = key.GetAccess<byte>())
         {
-            byte* pStackContextBytes = stackalloc byte[contextByteCount];
-            contextBytesPtr = pStackContextBytes;
+            Blake3Context.Update(&blake3, keyAccess.Pointer, keyAccess.ByteSize);
         }
-        else
-        {
-            contextBytesPtr = (byte*)MemoryManager.Malloc(contextByteCount);
-            isStackAllocation = false;
-        }
-        Span<byte> contextBytes = new(contextBytesPtr, contextByteCount);
-        Encoding.Default.GetBytes(context, contextBytes);
-        Blake3Context.InitializeDeriveKey(&blake3, contextBytesPtr, (ulong)contextByteCount);
-        if (!isStackAllocation)
-        {
-            MemoryManager.Free(contextBytesPtr);
-        }
-        // TODO: update with key / key access
-        //Blake3Context.Update(&blake3, key, targetByteSize);
-        // TODO: implement custom FinalizeSeek for this. (direct inline XOR with data during finalization)
-        nuint b = targetByteSize;
-        ulong seek = 0;
-        for (; b > BLAKE3_BLOCK_LEN; b -= BLAKE3_BLOCK_LEN, seek += BLAKE3_BLOCK_LEN)
-        {
-            Blake3Context.FinalizeSeek(&blake3, seek, target + seek, BLAKE3_BLOCK_LEN);
-        }
-
-        Blake3Context.FinalizeSeek(&blake3, seek, target + seek, b);
+        Blake3Context.Finalize(&blake3, target, targetByteSize);
     }
 }

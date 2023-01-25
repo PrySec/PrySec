@@ -34,8 +34,8 @@ internal unsafe interface IProtectedMemoryProxy : IUnmanaged, IProtectedResource
     internal void ZeroMemory();
 }
 
-internal enum ProtectionState
+internal enum ProtectionState : uint
 {
-    Protected,
-    Unprotected
+    Protected = 0,
+    Unprotected = ~0u
 }

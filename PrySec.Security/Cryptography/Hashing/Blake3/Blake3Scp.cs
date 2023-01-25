@@ -148,7 +148,7 @@ public unsafe partial class Blake3Scp : Blake3__EffectiveArch, IVariableLengthKe
         where TOutputMemory : IUnmanaged<TOutputMemory, byte>
     {
         Blake3Context context = default;
-        using DeterministicSentinel<Blake3Context> _ = DeterministicSentinel.Protect(&context, 1);
+        using DeterministicSentinel<Blake3Context> _ = DeterministicSentinel.Protect(&context);
         Blake3Context.Initialize(&context);
         using (IMemoryAccess<byte> access = input.GetAccess<byte>())
         {
@@ -172,7 +172,7 @@ public unsafe partial class Blake3Scp : Blake3__EffectiveArch, IVariableLengthKe
             throw new ArgumentOutOfRangeException(nameof(key), "key must be 32 bytes in length");
         }
         Blake3Context context = default;
-        using DeterministicSentinel<Blake3Context> _ = DeterministicSentinel.Protect(&context, 1);
+        using DeterministicSentinel<Blake3Context> _ = DeterministicSentinel.Protect(&context);
         using (IMemoryAccess<byte> access = key.GetAccess<byte>())
         {
             Blake3Context.InitializeKeyed(&context, access.Pointer);
@@ -194,8 +194,23 @@ public unsafe partial class Blake3Scp : Blake3__EffectiveArch, IVariableLengthKe
         where TOutputMemory : IUnmanaged<TOutputMemory, byte>
     {
         Blake3Context blake3 = default;
-        using DeterministicSentinel<Blake3Context> _ = DeterministicSentinel.Protect(&blake3, 1);
-        int contextByteCount = Encoding.UTF8.GetByteCount(KeyDerivationContext);
+        using DeterministicSentinel<Blake3Context> _ = DeterministicSentinel.Protect(&blake3);
+        InternalInitializeDeriveKeyFromContext(&blake3, KeyDerivationContext);
+        using (IMemoryAccess<byte> access = input.GetAccess<byte>())
+        {
+            Blake3Context.Update(&blake3, access.Pointer, access.ByteSize);
+        }
+        TOutputMemory output = TOutputMemory.Allocate(derivedKeyLength);
+        using (IMemoryAccess<byte> access = output.GetAccess())
+        {
+            Blake3Context.Finalize(&blake3, access.Pointer, access.ByteSize);
+        }
+        return output;
+    }
+
+    internal static void InternalInitializeDeriveKeyFromContext(Blake3Context* blake3, string context)
+    {
+        int contextByteCount = Encoding.UTF8.GetByteCount(context);
         byte* contextBytesPtr = null;
         bool isStackAllocation = true;
         if (contextByteCount < MemoryManager.MaxStackAllocSize)
@@ -209,22 +224,12 @@ public unsafe partial class Blake3Scp : Blake3__EffectiveArch, IVariableLengthKe
             isStackAllocation = false;
         }
         Span<byte> contextBytes = new(contextBytesPtr, contextByteCount);
-        Encoding.Default.GetBytes(KeyDerivationContext, contextBytes);
-        Blake3Context.InitializeDeriveKey(&blake3, contextBytesPtr, (ulong)contextByteCount);
+        Encoding.Default.GetBytes(context, contextBytes);
+        Blake3Context.InitializeDeriveKey(blake3, contextBytesPtr, (ulong)contextByteCount);
         if (!isStackAllocation)
         {
             MemoryManager.Free(contextBytesPtr);
         }
-        using (IMemoryAccess<byte> access = input.GetAccess<byte>())
-        {
-            Blake3Context.Update(&blake3, access.Pointer, access.ByteSize);
-        }
-        TOutputMemory output = TOutputMemory.Allocate(derivedKeyLength);
-        using (IMemoryAccess<byte> access = output.GetAccess())
-        {
-            Blake3Context.Finalize(&blake3, access.Pointer, access.ByteSize);
-        }
-        return output;
     }
 
     #endregion core driver

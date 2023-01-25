@@ -29,7 +29,7 @@ public unsafe readonly ref struct UnmanagedSpan<T> where T : unmanaged
 
     public readonly Span<T> AsSpan() => _span;
 
-    public readonly void ZeroMemory() => _byteSpan.Fill(0);
+    public readonly void ZeroMemory() => _byteSpan.Clear();
 
     public readonly void Memset(T value) => _span.Fill(value);
 

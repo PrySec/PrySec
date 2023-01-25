@@ -16,6 +16,7 @@ internal unsafe struct Blake3Context
     public fixed uint Key[8];
     public Blake3ChunkState Chunk;
     public byte CvStackLength;
+    public delegate*<void*, void*, Size_T, void> BlockFinalizerFunction;
 
     // The stack size is MAX_DEPTH + 1 because we do lazy merging. For example,
     // with 7 chunks, we have 3 entries in the stack. Adding an 8th chunk
@@ -28,6 +29,7 @@ internal unsafe struct Blake3Context
         Unsafe.CopyBlockUnaligned(self->Key, key, BLAKE3_KEY_LEN);
         Blake3ChunkState.Initialize(&self->Chunk, key, flags);
         self->CvStackLength = 0;
+        self->BlockFinalizerFunction = &MemoryManager.Memcpy;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -76,7 +78,7 @@ internal unsafe struct Blake3Context
             if (inputLength > 0)
             {
                 Blake3Output output = default;
-                using DeterministicSentinel<Blake3Output> _ = DeterministicSentinel.Protect(&output, 1);
+                using DeterministicSentinel<Blake3Output> _ = DeterministicSentinel.Protect(&output);
                 Blake3ChunkState.ToOutput(&self->Chunk, &output);
                 byte* chunkCv = stackalloc byte[BLAKE3_OUT_LEN];
                 using DeterministicMemory<byte> _2 = DeterministicMemory.ProtectOnly(chunkCv, BLAKE3_OUT_LEN);
@@ -142,7 +144,7 @@ internal unsafe struct Blake3Context
                 chunkState.ChunkCounter = self->Chunk.ChunkCounter;
                 Blake3ChunkState.Update(&chunkState, input, (uint)subtreeLength);
                 Blake3Output output = default;
-                using DeterministicSentinel<Blake3Output> _ = DeterministicSentinel.Protect(&output, 1);
+                using DeterministicSentinel<Blake3Output> _ = DeterministicSentinel.Protect(&output);
                 Blake3ChunkState.ToOutput(&chunkState, &output);
                 Blake3Output.ChainingValue(&output, cv);
                 PushCv(self, cv, chunkState.ChunkCounter);
@@ -183,13 +185,13 @@ internal unsafe struct Blake3Context
             return;
         }
         Blake3Output output_t = default;
-        DeterministicSentinel<Blake3Output> _ = DeterministicSentinel.Protect(&output_t, 1);
+        DeterministicSentinel<Blake3Output> _ = DeterministicSentinel.Protect(&output_t);
 
         // If the subtree stack is empty, then the current chunk is the root.
         if (self->CvStackLength == 0)
         {
             Blake3ChunkState.ToOutput(&self->Chunk, &output_t);
-            Blake3Output.RootBytes(&output_t, seek, output, outputLength);
+            Blake3Output.RootBytes(&output_t, self, seek, output, outputLength);
             return;
         }
         // If there are any bytes in the chunk state, finalize that chunk and do a
@@ -219,7 +221,7 @@ internal unsafe struct Blake3Context
             Blake3Output.ChainingValue(&output_t, parentBlock + 32);
             Blake3Output.Parent(&output_t, parentBlock, self->Key, self->Chunk.Flags);
         }
-        Blake3Output.RootBytes(&output_t, seek, output, outputLength);
+        Blake3Output.RootBytes(&output_t, self, seek, output, outputLength);
     }
 
     // In reference_impl.rs, we merge the new CV with existing CVs from the stack
@@ -281,7 +283,7 @@ internal unsafe struct Blake3Context
             byte* parentNode = &self->CvStack[(self->CvStackLength - 2) * BLAKE3_OUT_LEN];
             Blake3Output output = default;
             Blake3Output.Parent(&output, parentNode, self->Key, self->Chunk.Flags);
-            using DeterministicSentinel<Blake3Output> _ = DeterministicSentinel.Protect(&output, 1);
+            using DeterministicSentinel<Blake3Output> _ = DeterministicSentinel.Protect(&output);
             Blake3Output.ChainingValue(&output, parentNode);
             self->CvStackLength -= 1;
         }
@@ -336,7 +338,9 @@ internal unsafe struct Blake3Context
         // this gives us the option of multi-threading even the 2-chunk case, which
         // can help performance on smaller platforms.
         if (inputLength <= BLAKE3_SIMD_DEGREE * BLAKE3_CHUNK_LEN)
+        {
             return CompressChunksParallel(input, inputLength, key, chunkCounter, flags, output);
+        }
 
         // With more than simd_degree chunks, we need to recurse. Start by dividing
         // the input into left and right subtrees. (Note that this is only optimal
@@ -353,11 +357,14 @@ internal unsafe struct Blake3Context
         byte* cvArray = stackalloc byte[2 * MAX_SIMD_DEGREE_OR_2 * BLAKE3_OUT_LEN];
         uint degree = BLAKE3_SIMD_DEGREE;
         if (leftInputLength > BLAKE3_CHUNK_LEN && degree == 1)
+        {
             // The special case: We always use a degree of at least two, to make
             // sure there are two outputs. Except, as noted above, at the chunk
             // level, where we allow degree=1. (Note that the 1-chunk-input case is
             // a different codepath.)
             degree = 2u;
+        }
+
         byte* rightCvs = cvArray + degree * BLAKE3_OUT_LEN;
 
         // Recurse! If this implementation adds multi-threading support in the
@@ -468,7 +475,7 @@ internal unsafe struct Blake3Context
             chunkState.ChunkCounter = counter;
             Blake3ChunkState.Update(&chunkState, input + inputPosition, (uint)(inputLength - inputPosition));
             Blake3Output chunkOutput = default;
-            using DeterministicSentinel<Blake3Output> _ = DeterministicSentinel.Protect(&chunkOutput, 1);
+            using DeterministicSentinel<Blake3Output> _ = DeterministicSentinel.Protect(&chunkOutput);
             Blake3Output.ChainingValue(&chunkOutput, output + chunksArrayLength * BLAKE3_OUT_LEN);
             return chunksArrayLength + 1;
         }
