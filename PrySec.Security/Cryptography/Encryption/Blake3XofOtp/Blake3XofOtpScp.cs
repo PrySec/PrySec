@@ -13,6 +13,17 @@ public unsafe class Blake3XofOtpScp : Blake3__EffectiveArch
 
     public Blake3XofOtpScp(string keyDerivationContext) => _context = keyDerivationContext;
 
+    internal void ComputeInline__Internal(byte* xofKey, Size_T xofKeySize, byte* target, Size_T targetByteSize)
+    {
+        Blake3Context blake3 = default;
+        using DeterministicSentinel<Blake3Context> _ = DeterministicSentinel.Protect(&blake3);
+        Blake3Scp.InternalInitializeDeriveKeyFromContext(&blake3, _context);
+        // override finalizer function
+        blake3.BlockFinalizerFunction = Blake3XofOtpBlockFinalizer__EffectiveArch.BlockFinalizerFunction;
+        Blake3Context.Update(&blake3, xofKey, xofKeySize);
+        Blake3Context.Finalize(&blake3, target, targetByteSize);
+    }
+
     public void ComputeInline<TKeyMemory>(ref TKeyMemory key, byte* target, Size_T targetByteSize)
         where TKeyMemory : IUnmanaged
     {

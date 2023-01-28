@@ -12,7 +12,7 @@ public unsafe class Blake3XofOtpEncryptedMemory<T> : IProtectedMemoryFactory<Bla
 {
     private bool disposedValue = false;
 
-    public static int IVSize => 64;
+    public static int IVSize => Blake3XofOtpEncryptionService.KEY_SIZE;
 
     private protected Blake3XofOtpEncryptedMemory(Size_T count)
     {

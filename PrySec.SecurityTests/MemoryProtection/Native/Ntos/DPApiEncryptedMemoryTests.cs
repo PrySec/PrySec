@@ -4,6 +4,7 @@ using PrySec.SecurityTests;
 using System;
 using System.Text;
 using System.Linq;
+using PrySec.Security.MemoryProtection.Native.Ntos.DPApi;
 
 namespace PrySec.Security.MemoryProtection.Native.Ntos.Tests;
 

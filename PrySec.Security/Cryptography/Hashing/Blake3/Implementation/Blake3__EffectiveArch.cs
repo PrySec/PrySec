@@ -67,7 +67,7 @@ public unsafe abstract partial class Blake3__EffectiveArch
             _ when Sse41.IsSupported => UseSimdImplementation<Blake3HwIntrinsicsSse41>(),       // 4
             // TODO:
             //_ when Sse2.IsSupported => UseSimdImplementation<Blake3HwIntrinsicsSse2>(),       // 4
-            //_ when AdvSimd.IsSupported => UseSimdImplementation<Blake3HwIntrinsicsAdvSimd>(), // 4
+            //_ when AdvSimd.IsSupported => UseSimdImplementation<Blake3HwIntrinsicsNeon>(),    // 4
             _ => UseSimdImplementation<Blake3HwIntrinsicsDefault>()                             // 1
         };
 
