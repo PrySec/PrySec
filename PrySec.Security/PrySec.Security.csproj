@@ -1,9 +1,10 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
 	<TargetFramework>net7.0</TargetFramework>
 	<LangVersion>latest</LangVersion>
 	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,7 +14,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="MemoryProtection\Native\Ntos\MemoryApi\Win32GuardPageWatchdog.cs~RF8e16b1.TMP" />
     <None Remove="MemoryProtection\Portable\Sentinels\DeterministicSentinelFactory.cs~RFdf5a48.TMP" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include=".properies\AssemblyInfo.cs" />
   </ItemGroup>
 
 	<ItemGroup>

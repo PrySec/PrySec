@@ -1,17 +1,38 @@
 ﻿//#define custom
 
 using BenchmarkDotNet.Running;
+using PrySec.Core.Memory;
 using PrySec.Core.Memory.MemoryManagement;
 using PrySec.Core.Memory.MemoryManagement.Implementations;
 using PrySec.Security.Cryptography.Hashing.Blake2;
+using PrySec.Security.MemoryProtection.Native.Ntos.DPApi;
+using PrySec.Security.MemoryProtection.Native.Ntos.MemoryApi;
 using PrySec.Security.MemoryProtection.Portable;
+using PrySec.Security.MemoryProtection.Portable.XofOtp;
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading;
 using Testing;
 
-MemoryManager.UseImplementation<NativeMemoryManager>();
+unsafe
+{
+    MemoryManager.UseImplementation<NativeMemoryManager>();
+
+    Blake3XofOtpEncryptedMemory<byte> mem = Blake3XofOtpEncryptedMemory<byte>.Allocate(128);
+    byte[] bytes = Encoding.ASCII.GetBytes("Oh gawd send help lol xD");
+    using (IMemoryAccess<byte> access = mem.GetAccess())
+    {
+        bytes.CopyTo(access.AsSpan());
+    }
+    while (true)
+    {
+        Console.ReadLine();
+    }
+}
+
+return;
 
 const uint WARMUP = 10_000;
 const uint ITERATIONS = 500_000;

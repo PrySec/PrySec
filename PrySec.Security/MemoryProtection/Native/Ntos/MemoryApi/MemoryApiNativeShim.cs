@@ -10,14 +10,14 @@ internal static unsafe partial class MemoryApiNativeShim
 {
     public static int PageSize => Environment.SystemPageSize;
 
-    public static MemoryProtection VirtualQuery(void* ptr, Size_T size)
+    public static MemoryProtection VirtualQuery(nint handle, Size_T size)
     {
         nint hInfo = IntPtr.Zero;
         try
         {
             hInfo = Marshal.AllocHGlobal(Marshal.SizeOf<MEMORY_BASIC_INFORMATION>());
             MEMORY_BASIC_INFORMATION* pInfo = (MEMORY_BASIC_INFORMATION*)hInfo;
-            nuint bytesWritten = VirtualQueryNative(new nint(ptr), hInfo, size);
+            nuint bytesWritten = VirtualQueryNative(handle, hInfo, size);
             if (bytesWritten == 0)
             {
                 int errCode = Marshal.GetLastPInvokeError();
@@ -30,6 +30,19 @@ internal static unsafe partial class MemoryApiNativeShim
             Marshal.FreeHGlobal(hInfo);
         }
     }
+
+    public static MemoryProtection VirtualQuery(nint handle, Size_T size, MEMORY_BASIC_INFORMATION* pBuffer)
+    {
+        nuint bytesWritten = VirtualQueryNative(handle, new nint(pBuffer), size);
+        if (bytesWritten == 0)
+        {
+            int errCode = Marshal.GetLastPInvokeError();
+            throw new Win32Exception(errCode);
+        }
+        return pBuffer->Protect;
+    }
+
+    public static MemoryProtection QueryPageInfo(nint handle, MEMORY_BASIC_INFORMATION* pBuffer) => VirtualQuery(handle, PageSize, pBuffer);
 
     public static void VirtualProtect(nint handle, Size_T size, MemoryProtection protection)
     {

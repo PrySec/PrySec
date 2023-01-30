@@ -23,6 +23,7 @@ internal static unsafe class Blake3XofOtpEncryptionService
         using IMemoryAccess<byte> access = _principalKeyMemory.GetAccess<byte>();
         SecureRandom.Fill(access.Pointer, access.ByteSize);
         AlignedXorService__EffectiveArch.Xor2dAligned(access.Pointer, access.Pointer + KEY_SIZE, KEY_SIZE);
+        Console.WriteLine($"_principalKeyMemory base: 0x{_principalKeyMemory.BaseHandle:x16}");
     }
 
     public static void Protect<T>(Blake3XofOtpEncryptedMemory<T> memory) where T : unmanaged
