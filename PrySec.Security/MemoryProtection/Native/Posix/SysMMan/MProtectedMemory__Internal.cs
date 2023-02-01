@@ -135,7 +135,7 @@ internal unsafe class MProtectedMemory__Internal<T> : IProtectedMemoryFactory<MP
     {
         if (!disposedValue && Interlocked.CompareExchange(ref _isProtected, (uint)ProtectionState.Unprotected, (uint)ProtectionState.Protected) == (uint)ProtectionState.Protected)
         {
-            SysMManNativeShim.MProtect(BaseHandle, NativeByteSize, MemoryProtection.PROT_NONE);
+            SysMManNativeShim.MProtect(BaseHandle, NativeByteSize, MemoryProtection.PROT_READ | MemoryProtection.PROT_WRITE);
         }
     }
 }
