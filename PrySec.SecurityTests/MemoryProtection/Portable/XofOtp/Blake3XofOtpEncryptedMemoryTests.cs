@@ -85,8 +85,6 @@ public unsafe class Blake3XofOtpEncryptedMemoryTests : BaseTest
         Assert.IsTrue(bytes.ToArray().All(b => b is 0));
     }
 
-#if WIN32
-
     [TestMethod]
     public void Test6()
     {
@@ -110,8 +108,6 @@ public unsafe class Blake3XofOtpEncryptedMemoryTests : BaseTest
         Span<byte> bytes = access.AsSpan();
         Assert.IsTrue(bytes.ToArray().All(b => b is 0));
     }
-
-#endif
 
     [TestMethod]
     public void Test8()
