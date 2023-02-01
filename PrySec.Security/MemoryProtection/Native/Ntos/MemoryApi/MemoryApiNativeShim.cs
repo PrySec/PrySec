@@ -1,4 +1,5 @@
-﻿using PrySec.Core.NativeTypes;
+﻿using PrySec.Core.Native;
+using PrySec.Core.NativeTypes;
 using System;
 using System.ComponentModel;
 using System.Drawing;
@@ -8,8 +9,6 @@ namespace PrySec.Security.MemoryProtection.Native.Ntos.MemoryApi;
 
 internal static unsafe partial class MemoryApiNativeShim
 {
-    public static int PageSize => Environment.SystemPageSize;
-
     public static MemoryProtection VirtualQuery(nint handle, Size_T size)
     {
         nint hInfo = IntPtr.Zero;
@@ -42,7 +41,7 @@ internal static unsafe partial class MemoryApiNativeShim
         return pBuffer->Protect;
     }
 
-    public static MemoryProtection QueryPageInfo(nint handle, MEMORY_BASIC_INFORMATION* pBuffer) => VirtualQuery(handle, PageSize, pBuffer);
+    public static MemoryProtection QueryPageInfo(nint handle, MEMORY_BASIC_INFORMATION* pBuffer) => VirtualQuery(handle, OS.PageSize, pBuffer);
 
     public static void VirtualProtect(nint handle, Size_T size, MemoryProtection protection)
     {
@@ -69,13 +68,5 @@ internal static unsafe partial class MemoryApiNativeShim
             int lastError = Marshal.GetLastPInvokeError();
             throw new Win32Exception(lastError);
         }
-    }
-
-    public static Size_T RoundToNextPageSize(Size_T size)
-    {
-        nuint s = size;
-        nuint pageSize = (nuint)PageSize;
-        nuint remainder = s % pageSize;
-        return s - remainder + (pageSize & (nuint)((-(nint)remainder) >> ((nint.Size * 8) - 1)));
     }
 }

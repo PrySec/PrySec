@@ -8,12 +8,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="MemoryProtection\Native\Posix\**" />
-    <EmbeddedResource Remove="MemoryProtection\Native\Posix\**" />
-    <None Remove="MemoryProtection\Native\Posix\**" />
-  </ItemGroup>
-
-  <ItemGroup>
     <None Remove="MemoryProtection\Native\Ntos\MemoryApi\Win32GuardPageWatchdog.cs~RF8e16b1.TMP" />
     <None Remove="MemoryProtection\Portable\Sentinels\DeterministicSentinelFactory.cs~RFdf5a48.TMP" />
   </ItemGroup>

@@ -1,12 +1,11 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PrySec.Core.Memory;
-using PrySec.SecurityTests;
 using System;
 using System.Text;
 using System.Linq;
 using PrySec.Security.MemoryProtection.Native.Ntos.DPApi;
 
-namespace PrySec.Security.MemoryProtection.Native.Ntos.Tests;
+namespace PrySec.SecurityTests.MemoryProtection.Native.Ntos.DPApi;
 
 #if WIN32
 

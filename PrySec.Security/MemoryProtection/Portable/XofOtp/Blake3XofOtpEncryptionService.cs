@@ -3,8 +3,10 @@ using PrySec.Core.Memory.MemoryManagement;
 using PrySec.Security.Cryptography.Crng;
 using PrySec.Security.Cryptography.Encryption.Blake3XofOtp;
 using PrySec.Security.MemoryProtection.Native.Ntos.MemoryApi;
+using PrySec.Security.MemoryProtection.Portable.ProtectedMemory;
 using PrySec.Security.MemoryProtection.Portable.XofOtp.Intrinsics;
 using System;
+using System.Diagnostics;
 
 namespace PrySec.Security.MemoryProtection.Portable.XofOtp;
 
@@ -12,18 +14,18 @@ internal static unsafe class Blake3XofOtpEncryptionService
 {
     private static readonly Blake3XofOtpScp _otpService = new($"https://github.com/frederik-hoeft/PrySec 2023-01-25 22:10:07 PrySec BLAKE3 XOF OTP SCP");
 
-    private static readonly Win32ProtectedMemory__Internal<byte> _principalKeyMemory;
+    private static readonly ProtectedMemory<byte> _principalKeyMemory;
 
     public const int KEY_SIZE = 64;
 
     static Blake3XofOtpEncryptionService()
     {
         // TODO: fluent/dynamic reference!
-        _principalKeyMemory = Win32ProtectedMemory__Internal<byte>.Allocate(KEY_SIZE + KEY_SIZE);
+        _principalKeyMemory = ProtectedMemory<byte>.Allocate(KEY_SIZE + KEY_SIZE);
         using IMemoryAccess<byte> access = _principalKeyMemory.GetAccess<byte>();
         SecureRandom.Fill(access.Pointer, access.ByteSize);
         AlignedXorService__EffectiveArch.Xor2dAligned(access.Pointer, access.Pointer + KEY_SIZE, KEY_SIZE);
-        Console.WriteLine($"_principalKeyMemory base: 0x{_principalKeyMemory.BaseHandle:x16}");
+        Debug.WriteLine($"_principalKeyMemory base: 0x{(nint)_principalKeyMemory.BasePointer:x16}");
     }
 
     public static void Protect<T>(Blake3XofOtpEncryptedMemory<T> memory) where T : unmanaged

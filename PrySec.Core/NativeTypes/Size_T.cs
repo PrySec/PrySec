@@ -33,6 +33,10 @@ public unsafe readonly struct Size_T
 
     public static Size_T operator *(Size_T a, Size_T b) => new(a.value * b.value);
 
+    public static Size_T operator +(Size_T a, Size_T b) => new(a.value + b.value);
+
+    public static Size_T operator -(Size_T a, Size_T b) => new(a.value - b.value);
+
     public static bool operator <(Size_T a, Size_T b) => a.value < b.value;
 
     public static bool operator >(Size_T a, Size_T b) => a.value > b.value;

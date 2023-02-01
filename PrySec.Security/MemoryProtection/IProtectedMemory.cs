@@ -34,6 +34,10 @@ internal unsafe interface IProtectedMemoryProxy : IUnmanaged, IProtectedResource
     internal void ZeroMemory();
 }
 
+internal unsafe interface IProtectedMemoryProxy<TData> : IProtectedMemoryProxy, IProtectedMemory<TData> where TData : unmanaged
+{
+}
+
 internal enum ProtectionState : uint
 {
     Protected = 0,

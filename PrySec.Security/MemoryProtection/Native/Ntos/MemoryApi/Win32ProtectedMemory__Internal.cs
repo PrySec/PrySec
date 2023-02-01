@@ -2,6 +2,7 @@
 using PrySec.Core.Memory;
 using PrySec.Core.Memory.MemoryManagement;
 using PrySec.Core.Memory.MemoryManagement.Implementations.AllocationTracking;
+using PrySec.Core.Native;
 using PrySec.Core.NativeTypes;
 using PrySec.Security.MemoryProtection.Portable.ProtectedMemory;
 using System;
@@ -12,7 +13,7 @@ using System.Threading;
 
 namespace PrySec.Security.MemoryProtection.Native.Ntos.MemoryApi;
 
-internal unsafe class Win32ProtectedMemory__Internal<T> : IProtectedMemoryFactory<Win32ProtectedMemory__Internal<T>, T>, IProtectedMemoryProxy, IGuardedMemoryRegion where T : unmanaged
+internal unsafe class Win32ProtectedMemory__Internal<T> : IProtectedMemoryFactory<Win32ProtectedMemory__Internal<T>, T>, IProtectedMemoryProxy<T>, IGuardedMemoryRegion where T : unmanaged
 {
     private bool disposedValue = false;
 
@@ -27,19 +28,16 @@ internal unsafe class Win32ProtectedMemory__Internal<T> : IProtectedMemoryFactor
             Count = count;
             ByteSize = count * sizeof(T);
             // Guard page + data pages + guard page
-            RestrictedAreaByteSize = MemoryApiNativeShim.RoundToNextPageSize(ByteSize);
-            NativeByteSize = RestrictedAreaByteSize + (2 * MemoryApiNativeShim.PageSize);
-            void* nativeAllocationBase = NativeMemory.AlignedAlloc(NativeByteSize, (nuint)MemoryApiNativeShim.PageSize);
-            if (MemoryManager.Allocator.SupportsAllocationTracking && MemoryManager.Allocator is IAllocationTracker tracker)
-            {
-                tracker.RegisterExternalAllocation(nativeAllocationBase, NativeByteSize);
-            }
+            RestrictedAreaByteSize = OS.RoundToNextPageSize(ByteSize);
+            NativeByteSize = RestrictedAreaByteSize + (2 * OS.PageSize);
+            void* nativeAllocationBase = NativeMemory.AlignedAlloc(NativeByteSize, OS.PageSize);
+            _ = MemoryManager.TryRegisterExternalAllocation(nativeAllocationBase, NativeByteSize);
             NativeHandle = new nint(nativeAllocationBase);
-            BasePointer = (byte*)nativeAllocationBase + MemoryApiNativeShim.PageSize;
+            BasePointer = (byte*)nativeAllocationBase + OS.PageSize;
             FrontGuardHandle = NativeHandle;
-            RearGuardHandle = NativeHandle + NativeByteSize - MemoryApiNativeShim.PageSize;
-            MemoryApiNativeShim.VirtualProtect(FrontGuardHandle, MemoryApiNativeShim.PageSize, MemoryProtection.PAGE_READONLY | MemoryProtection.PAGE_GUARD);
-            MemoryApiNativeShim.VirtualProtect(RearGuardHandle, MemoryApiNativeShim.PageSize, MemoryProtection.PAGE_READONLY | MemoryProtection.PAGE_GUARD);
+            RearGuardHandle = NativeHandle + NativeByteSize - OS.PageSize;
+            MemoryApiNativeShim.VirtualProtect(FrontGuardHandle, OS.PageSize, MemoryProtection.PAGE_READONLY | MemoryProtection.PAGE_GUARD);
+            MemoryApiNativeShim.VirtualProtect(RearGuardHandle, OS.PageSize, MemoryProtection.PAGE_READONLY | MemoryProtection.PAGE_GUARD);
             this.As<IProtectedResource>().Protect();
             PageProtectionStateWatchdog.Monitor(this);
         }
@@ -110,14 +108,11 @@ internal unsafe class Win32ProtectedMemory__Internal<T> : IProtectedMemoryFactor
             PageProtectionStateWatchdog.Disregard(this);
             this.As<IProtectedMemoryProxy>().Unprotect();
             MemoryManager.ZeroMemory(BasePointer, ByteSize);
-            MemoryApiNativeShim.VirtualProtect(FrontGuardHandle, MemoryApiNativeShim.PageSize, MemoryProtection.PAGE_READWRITE);
-            MemoryApiNativeShim.VirtualProtect(RearGuardHandle, MemoryApiNativeShim.PageSize, MemoryProtection.PAGE_READWRITE);
+            MemoryApiNativeShim.VirtualProtect(FrontGuardHandle, OS.PageSize, MemoryProtection.PAGE_READWRITE);
+            MemoryApiNativeShim.VirtualProtect(RearGuardHandle, OS.PageSize, MemoryProtection.PAGE_READWRITE);
             void* nativeAllocationBase = NativeHandle.ToPointer();
             NativeMemory.AlignedFree(nativeAllocationBase);
-            if (MemoryManager.Allocator.SupportsAllocationTracking && MemoryManager.Allocator is IAllocationTracker tracker)
-            {
-                tracker.UnregisterExternalAllocation(nativeAllocationBase);
-            }
+            _ = MemoryManager.TryUnregisterExternalAllocation(nativeAllocationBase);
             NativeHandle = 0;
             BasePointer = null;
             disposedValue = true;
