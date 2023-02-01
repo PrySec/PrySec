@@ -28,7 +28,7 @@ internal unsafe class Win32ProtectedMemory__Internal<T> : IProtectedMemoryFactor
             ByteSize = count * sizeof(T);
             // Guard page + data pages + guard page
             RestrictedAreaByteSize = MemoryApiNativeShim.RoundToNextPageSize(ByteSize);
-            NativeByteSize = RestrictedAreaByteSize + 2 * MemoryApiNativeShim.PageSize;
+            NativeByteSize = RestrictedAreaByteSize + (2 * MemoryApiNativeShim.PageSize);
             void* nativeAllocationBase = NativeMemory.AlignedAlloc(NativeByteSize, (nuint)MemoryApiNativeShim.PageSize);
             if (MemoryManager.Allocator.SupportsAllocationTracking && MemoryManager.Allocator is IAllocationTracker tracker)
             {
