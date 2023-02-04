@@ -74,6 +74,8 @@ public unsafe class AsciiStream : IDisposable
             if (remainingSize > 0)
             {
                 // remove result from cache
+                // TODO: use pointer arithmetic instead: move pointer until we reach the end of the buffer then reset pointer
+                // TODO: we don't need to copy memory around. just use pointers. 
                 Span<byte> remaining = buffer[remainingStartOffset.._currentSize];
                 remaining.CopyTo(buffer);
             }
@@ -158,7 +160,7 @@ public unsafe class AsciiStream : IDisposable
                 int idx = 0;
                 // scans 32-bit from MSB, so shift 16 bit to fill MSB
                 BinaryUtils.BitScanReverse(&idx, (uint)zeroMask2 << 16);
-                int networkOrderByteOffset = 3 - (idx / 8) - 2;
+                int networkOrderByteOffset = 3 - (idx / 8);
                 offset += networkOrderByteOffset;
                 slice = new Span<byte>(input, offset);
                 return true;    

@@ -15,6 +15,7 @@ public unsafe class ProcfsMapsParser : IDisposable
     private bool disposedValue;
 
     private const int PATH_MAX = 4096;
+
     private const int PROCMAPS_LINE_MAX_LENGTH = PATH_MAX + 100;
 
     private readonly AsciiStream _stream;
@@ -29,8 +30,19 @@ public unsafe class ProcfsMapsParser : IDisposable
 
     public ProcfsMemoryRegionInfoList QueryProcfsEx(int pid)
     {
-        ProcfsMemoryRegionInfoList procfsInfo = new();
         using Stream procfsStream = File.OpenRead($"/proc/{pid}/maps");
+        return QueryProcCore(procfsStream);
+    }
+
+    public ProcfsMemoryRegionInfoList QueryProcfs()
+    {
+        using Stream procfsStream = File.OpenRead("/proc/self/maps");
+        return QueryProcCore(procfsStream);
+    }
+
+    private ProcfsMemoryRegionInfoList QueryProcCore(Stream procfsStream)
+    {
+        ProcfsMemoryRegionInfoList procfsInfo = new();
         _stream.Reset(procfsStream);
         Span<byte> buf = new(_buffer, PROCMAPS_LINE_MAX_LENGTH);
         int bytesRead;
@@ -47,7 +59,7 @@ public unsafe class ProcfsMapsParser : IDisposable
     private static void ParseLine(byte* pLine, Size_T lineLength, ProcfsMemoryRegionInfo* pInfo)
     {
         // TODO parse...
-        Console.WriteLine(Encoding.ASCII.GetString(pLine, lineLength));
+        Console.WriteLine($"Mock parsing: {Encoding.ASCII.GetString(pLine, lineLength)}");
     }
 
     protected virtual void Dispose(bool disposing)

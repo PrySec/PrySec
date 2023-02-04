@@ -6,6 +6,7 @@ using PrySec.Core.IO;
 using PrySec.Core.Memory;
 using PrySec.Core.Memory.MemoryManagement;
 using PrySec.Core.Memory.MemoryManagement.Implementations;
+using PrySec.Core.Native.UnixLike;
 using PrySec.Security.Cryptography.Hashing.Blake2;
 using PrySec.Security.MemoryProtection.Native.Ntos.DPApi;
 using PrySec.Security.MemoryProtection.Native.Ntos.MemoryApi;
@@ -20,6 +21,11 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using Testing;
+
+using ProcfsMapsParser mapsParser = new(256);
+using ProcfsMemoryRegionInfoList list = mapsParser.QueryProcfs();
+
+return;
 
 Span<byte> buffer = stackalloc byte[100];
 using Stream st = File.OpenRead("test.txt");
