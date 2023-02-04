@@ -1,12 +1,14 @@
 ﻿using PrySec.Core.NativeTypes;
 using System;
 using System.Buffers.Binary;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 
 namespace PrySec.Core.HwPrimitives;
 
+[DebuggerStepThrough]
 public static unsafe partial class BinaryUtils
 {
     // TODO: consider using properties for direct inlining?
@@ -105,7 +107,7 @@ public static unsafe partial class BinaryUtils
     /// log2(value)
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public static int Ld(Size32_T value)
+    public static int Log2(Size32_T value)
     {
         int v = value;
 
@@ -128,21 +130,15 @@ public static unsafe partial class BinaryUtils
     /// Checks if <paramref name="value"/> is a power of 2.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public static bool Ip2(Size32_T value)
+    public static bool IsPowerOf2(Size32_T value)
     {
         uint v = value;
         return (v & v - 1) == 0;
     }
 
-    private const ulong HAS_ZERO_MASK_64 = 0x7F7F7F7F_7F7F7F7FuL;
-
-    private const uint HAS_ZERO_MASK_32 = 0x7F7F7F7F;
-
-    private const ushort HAS_ZERO_MASK_16 = 0x7F7F;
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool HasZeroByte(ulong v) =>
-        MaskZeroByte(v) != 0ul;
+        MaskZeroByte(v) != 0uL;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool HasZeroByte(uint v) =>
@@ -152,20 +148,50 @@ public static unsafe partial class BinaryUtils
     public static bool HasZeroByte(ushort v) =>
         MaskZeroByte(v) != 0;
 
-    // non-zero bytes will be all 0, zero bytes will have a leading 1 bit, followed by 7 0s
+    private const ulong ZERO_MASK_64_1 = 0x01010101_01010101uL;
+
+    private const ulong ZERO_MASK_64_2 = 0x80808080_80808080uL;
+
+    private const uint ZERO_MASK_32_1 = 0x01010101u;
+
+    private const uint ZERO_MASK_32_2 = 0x80808080u;
+
+    private const ushort ZERO_MASK_16_1 = 0x0101;
+
+    private const ushort ZERO_MASK_16_2 = 0x8080;
+
+    /// <summary>
+    /// returns a value where non-zero bytes in <paramref name="v"/> will be all 0 and zero bytes in <paramref name="v"/> will have a leading 1 bit, followed by 7 0s.
+    /// </summary>
+    /// <remarks>
+    /// 32-bit example: <c>MaskZeroByte(0x80_A2_00_2F) => 0b00000000_00000000_10000000_00000000</c> 
+    /// </remarks>
+    /// <param name="v">The value to calculate the zero-mask for</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ulong MaskZeroByte(ulong v) =>
-        ~((((v & HAS_ZERO_MASK_64) + HAS_ZERO_MASK_64) | v) | HAS_ZERO_MASK_64);
+        (v - ZERO_MASK_64_1) & ~v & ZERO_MASK_64_2;
 
-    // non-zero bytes will be all 0, zero bytes will have a leading 1 bit, followed by 7 0s
+    /// <summary>
+    /// returns a value where non-zero bytes in <paramref name="v"/> will be all 0 and zero bytes in <paramref name="v"/> will have a leading 1 bit, followed by 7 0s.
+    /// </summary>
+    /// <remarks>
+    /// 32-bit example: <c>MaskZeroByte(0x80_A2_00_2F) => 0b00000000_00000000_10000000_00000000</c> 
+    /// </remarks>
+    /// <param name="v">The value to calculate the zero-mask for</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint MaskZeroByte(uint v) =>
-        ~((((v & HAS_ZERO_MASK_32) + HAS_ZERO_MASK_32) | v) | HAS_ZERO_MASK_32);
+        (v - ZERO_MASK_32_1) & ~v & ZERO_MASK_32_2;
 
-    // non-zero bytes will be all 0, zero bytes will have a leading 1 bit, followed by 7 0s
+    /// <summary>
+    /// returns a value where non-zero bytes in <paramref name="v"/> will be all 0 and zero bytes in <paramref name="v"/> will have a leading 1 bit, followed by 7 0s.
+    /// </summary>
+    /// <remarks>
+    /// 32-bit example: <c>MaskZeroByte(0x80_A2_00_2F) => 0b00000000_00000000_10000000_00000000</c> 
+    /// </remarks>
+    /// <param name="v">The value to calculate the zero-mask for</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ushort MaskZeroByte(ushort v) =>
-        (ushort)~((((v & HAS_ZERO_MASK_16) + HAS_ZERO_MASK_16) | v) | HAS_ZERO_MASK_16);
+        (ushort)((v - ZERO_MASK_16_1) & ~v & ZERO_MASK_16_2);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static unsafe void WriteUInt32BigEndian(uint* target, uint value) =>

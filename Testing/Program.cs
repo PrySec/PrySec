@@ -2,6 +2,7 @@
 
 using BenchmarkDotNet.Running;
 using PrySec.Core.HwPrimitives;
+using PrySec.Core.IO;
 using PrySec.Core.Memory;
 using PrySec.Core.Memory.MemoryManagement;
 using PrySec.Core.Memory.MemoryManagement.Implementations;
@@ -19,6 +20,22 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using Testing;
+
+Span<byte> buffer = stackalloc byte[100];
+using Stream st = File.OpenRead("test.txt");
+using AsciiStream a = new(16, st);
+while (true)
+{
+    int bytesWritten = a.ReadLine(buffer);
+    if (bytesWritten <= 0)
+    {
+        break;
+    }
+    Span<byte> line = buffer[..bytesWritten];
+    Console.WriteLine(Encoding.ASCII.GetString(line));
+}
+Console.WriteLine("done.");
+return;
 
 unsafe
 {

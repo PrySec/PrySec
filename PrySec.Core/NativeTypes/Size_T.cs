@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 
 namespace PrySec.Core.NativeTypes;
 
+[DebuggerDisplay("value = {(ulong)value}")]
 [StructLayout(LayoutKind.Explicit)]
 public unsafe readonly struct Size_T
 {
@@ -20,6 +21,8 @@ public unsafe readonly struct Size_T
     public static implicit operator ulong(Size_T size) => size.value;
 
     public static implicit operator nuint(Size_T size) => size.value;
+
+    public static implicit operator Index(Size_T size) => new((int)size.value);
 
     public static implicit operator Size_T(int i) => new((nuint)i);
 

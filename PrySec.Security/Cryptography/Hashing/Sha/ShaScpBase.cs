@@ -9,7 +9,7 @@ public abstract unsafe class ShaScpBase<TWord> : IHashFunctionScp where TWord : 
     /// <summary>
     /// 2 for 32 bit algorithms, 3 for 64 bit
     /// </summary>
-    private protected readonly int WORD_SIZE_LOG_2 = BinaryUtils.Ld(sizeof(TWord));
+    private protected readonly int WORD_SIZE_LOG_2 = BinaryUtils.Log2(sizeof(TWord));
 
     /// <summary>
     /// The length in bytes of the final output digest
