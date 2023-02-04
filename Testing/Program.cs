@@ -1,16 +1,20 @@
 ﻿//#define custom
 
 using BenchmarkDotNet.Running;
+using PrySec.Core.HwPrimitives;
 using PrySec.Core.Memory;
 using PrySec.Core.Memory.MemoryManagement;
 using PrySec.Core.Memory.MemoryManagement.Implementations;
 using PrySec.Security.Cryptography.Hashing.Blake2;
 using PrySec.Security.MemoryProtection.Native.Ntos.DPApi;
 using PrySec.Security.MemoryProtection.Native.Ntos.MemoryApi;
+using PrySec.Security.MemoryProtection.Native.Posix.SysMMan;
 using PrySec.Security.MemoryProtection.Portable;
 using PrySec.Security.MemoryProtection.Portable.XofOtp;
 using System;
+using System.Buffers.Binary;
 using System.Diagnostics;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
@@ -18,19 +22,58 @@ using Testing;
 
 unsafe
 {
+    byte* b = stackalloc byte[8];
+    b[0] = 0;
+    b[1] = 1;
+    b[2] = 2;
+    b[3] = 3;
+    b[4] = 4;
+    b[5] = 5;
+    b[6] = 0;
+    b[7] = 7;
+    ulong u8 = BinaryUtils.ReadUInt64BigEndian((ulong*)b);//BinaryPrimitives.ReadUInt64BigEndian(new Span<byte>(&value, 8));
+    ulong zeroMask = BinaryUtils.MaskZeroByte(u8);
+    if (zeroMask != 0uL)
+    {
+        Console.WriteLine($"0x{u8:x16} contains one or more zero bytes!");
+        int index = 0;
+        BinaryUtils.BitScanReverse(&index, zeroMask);
+        Console.WriteLine($"Byte offset {7 - (index / 8)} is the first zero byte!");
+    }
+    else
+    {
+        System.Console.WriteLine($"0x{u8:x16} has no zero bytes!");
+    }
+}
+return;
+
+unsafe
+{
     MemoryManager.UseImplementation<NativeMemoryManager>();
 
-    Blake3XofOtpEncryptedMemory<byte> mem = Blake3XofOtpEncryptedMemory<byte>.Allocate(128);
+    MProtectedMemory__Internal<byte> mem = MProtectedMemory__Internal<byte>.Allocate(128);
     byte[] bytes = Encoding.ASCII.GetBytes("Oh gawd send help lol xD");
     using (IMemoryAccess<byte> access = mem.GetAccess())
     {
         bytes.CopyTo(access.AsSpan());
     }
-    while (true)
-    {
-        Console.ReadLine();
-    }
+    //while (true)
+    //{
+    //    Console.ReadLine();
+    //}
+    Console.WriteLine($"{mem.NativeHandle:x16}");
+    string s = File.ReadAllText("/proc/self/maps");
+    Console.WriteLine(s);
 }
+
+static unsafe int QueryProcSelf(nint handle)
+{
+    using Stream s = File.OpenRead("/proc/self/maps");
+    Console.WriteLine(s.Length);
+    return 0;
+}
+
+#if false
 
 return;
 
@@ -69,7 +112,7 @@ unsafe
         Console.WriteLine();
     }
 }
-
+#endif
 /*
  * 
  * 

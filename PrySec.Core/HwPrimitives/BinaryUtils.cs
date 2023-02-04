@@ -134,6 +134,39 @@ public static unsafe partial class BinaryUtils
         return (v & v - 1) == 0;
     }
 
+    private const ulong HAS_ZERO_MASK_64 = 0x7F7F7F7F_7F7F7F7FuL;
+
+    private const uint HAS_ZERO_MASK_32 = 0x7F7F7F7F;
+
+    private const ushort HAS_ZERO_MASK_16 = 0x7F7F;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool HasZeroByte(ulong v) =>
+        MaskZeroByte(v) != 0ul;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool HasZeroByte(uint v) =>
+        MaskZeroByte(v) != 0u;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool HasZeroByte(ushort v) =>
+        MaskZeroByte(v) != 0;
+
+    // non-zero bytes will be all 0, zero bytes will have a leading 1 bit, followed by 7 0s
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ulong MaskZeroByte(ulong v) =>
+        ~((((v & HAS_ZERO_MASK_64) + HAS_ZERO_MASK_64) | v) | HAS_ZERO_MASK_64);
+
+    // non-zero bytes will be all 0, zero bytes will have a leading 1 bit, followed by 7 0s
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static uint MaskZeroByte(uint v) =>
+        ~((((v & HAS_ZERO_MASK_32) + HAS_ZERO_MASK_32) | v) | HAS_ZERO_MASK_32);
+
+    // non-zero bytes will be all 0, zero bytes will have a leading 1 bit, followed by 7 0s
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ushort MaskZeroByte(ushort v) =>
+        (ushort)~((((v & HAS_ZERO_MASK_16) + HAS_ZERO_MASK_16) | v) | HAS_ZERO_MASK_16);
+
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static unsafe void WriteUInt32BigEndian(uint* target, uint value) =>
         *target = BitConverter.IsLittleEndian
@@ -169,6 +202,30 @@ public static unsafe partial class BinaryUtils
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static unsafe ulong ReadUInt64LittleEndian(ulong* ptr) =>
         BinaryPrimitives.ReadUInt64LittleEndian(new Span<byte>(ptr, sizeof(ulong)));
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe short ReadInt16BigEndian(short* ptr) =>
+        BinaryPrimitives.ReadInt16BigEndian(new Span<byte>(ptr, sizeof(short)));
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe int ReadInt32BigEndian(int* ptr) =>
+        BinaryPrimitives.ReadInt32BigEndian(new Span<byte>(ptr, sizeof(int)));
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe long ReadInt64BigEndian(long* ptr) =>
+        BinaryPrimitives.ReadInt64BigEndian(new Span<byte>(ptr, sizeof(long)));
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe ushort ReadUInt16BigEndian(ushort* ptr) =>
+        BinaryPrimitives.ReadUInt16BigEndian(new Span<byte>(ptr, sizeof(ushort)));
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe uint ReadUInt32BigEndian(uint* ptr) =>
+        BinaryPrimitives.ReadUInt32BigEndian(new Span<byte>(ptr, sizeof(uint)));
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe ulong ReadUInt64BigEndian(ulong* ptr) =>
+        BinaryPrimitives.ReadUInt64BigEndian(new Span<byte>(ptr, sizeof(ulong)));
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static unsafe void WriteInt16LittleEndian(void* ptr, short value) =>
