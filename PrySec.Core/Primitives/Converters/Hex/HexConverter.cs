@@ -38,7 +38,7 @@ public static unsafe class HexConverter
         byte[] outputBuffer = new byte[outputSize];
         fixed(byte* output = outputBuffer)
         {
-            HexConverter__EffectiveArch.DispatchUnhexlify(input, inputSize, output, outputSize);
+            HexConverter__EffectiveArch.DispatchUnhexlify(input, inputSize, output);
         }
         if (!isStackAllocation)
         {
