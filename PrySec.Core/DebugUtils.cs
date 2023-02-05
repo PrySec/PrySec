@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 namespace PrySec.Core;
 
+[DebuggerStepThrough]
 public static unsafe class DebugUtils
 {
     [Conditional("DEBUG")]

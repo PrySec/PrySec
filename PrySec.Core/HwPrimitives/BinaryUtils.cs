@@ -11,7 +11,6 @@ namespace PrySec.Core.HwPrimitives;
 [DebuggerStepThrough]
 public static unsafe partial class BinaryUtils
 {
-    // TODO: consider using properties for direct inlining?
     private static readonly delegate*<int*, uint, int> _bitScanReverseImpl;
     private static readonly delegate*<int*, ulong, int> _bitScanReverse64Impl;
     private static readonly delegate*<uint, int> _populationCountImpl;

@@ -11,7 +11,7 @@ internal static unsafe class Blake3XofOtpBlockFinalizer__EffectiveArch
     /// <summary>
     /// <c>void FinalizeBlock(void* dst, void* src, Size_T count);</c>
     /// </summary>
-    public static delegate*<void*, void*, Size_T, void> BlockFinalizerFunction;
+    public static delegate*<void*, void*, Size_T, void> BlockFinalizerFunction { get; private set; }
 
     static Blake3XofOtpBlockFinalizer__EffectiveArch()
     {
