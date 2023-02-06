@@ -14,7 +14,7 @@ internal class HexConverterHwIntrinsicsAvx2 : IHexConverterImplementation
     public static unsafe void Unhexlify(byte* input, Size_T inputSize, byte* output, byte* workspaceBuffer)
     {
         Size_T i = inputSize;
-        for ( ; i - InputBlockSize > 0; i -= InputBlockSize, input += InputBlockSize, output += OutputBlockSize)
+        for ( ; i - InputBlockSize >= 0; i -= InputBlockSize, input += InputBlockSize, output += OutputBlockSize)
         {
             // (input & 0xF) + (input >> 6) | ((input >> 3) & 0x8);
             Vector256<byte> vInput = Avx.LoadVector256(input);
@@ -47,6 +47,7 @@ internal class HexConverterHwIntrinsicsAvx2 : IHexConverterImplementation
             // combinedNibbles looks like this
             // 0H HL LH HL LH HL LH HL where every second byte is valid.
             // now set invalid bytes to zero using bitmask
+            // TODO: could use permute here
             Vector256<uint> zeroMask = Vector256.Create(0xFF00FF00u); // LITTLE ENDIAN!!!
             Vector256<uint> everySecondByteIsValid = Avx2.And(combinedNibbles, zeroMask);
 

@@ -61,4 +61,9 @@ public static class AvxPrimitives
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static Vector256<ulong> SwapMiddleX64(Vector256<ulong> input) =>
         Avx2.Permute4x64(input, 0b11011000);
+
+    public static Vector256<byte> Take2nPlus1(Vector256<byte> input)
+    {
+        return default;
+    }
 }

@@ -18,9 +18,43 @@ using System.Buffers.Binary;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
 using System.Text;
 using System.Threading;
 using Testing;
+
+unsafe
+{
+    byte* input = stackalloc byte[32];
+    for (int i = 1; i < 32; i+=2)
+    {
+        input[i] = (byte)i;
+    }
+
+    byte* t = stackalloc byte[16];
+    for (int i = 0; i < 16; i++)
+    {
+        t[i] = (byte)((2 * i) + 1);
+    }
+    Vector128<byte> exp = Sse2.LoadVector128(t);
+
+    Vector256<byte> v = Avx.LoadVector256(input);
+    Console.WriteLine(v);
+
+    for (int i = 0; i < 256; i++)
+    {
+        Vector256<byte> x = Avx2.Permute2x128(v, v, (byte)i);
+        if (x.GetUpper() == exp)
+        {
+            Console.WriteLine(i);
+        }
+        Console.WriteLine(x);
+    }
+
+}
+
+return;
 
 using ProcfsMapsParser mapsParser = new(256);
 using ProcfsMemoryRegionInfoList list = mapsParser.QueryProcfs();
