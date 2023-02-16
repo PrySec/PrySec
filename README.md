@@ -39,6 +39,7 @@ Stop people from prying around in your process's memory!
 
 ### And much more...
 
+- [x] Hardware-accelerated hex-decode function that is up to 7 times faster than `Convert.FromHexString()`.
 - [x] Unmanaged memory framework and allocation tracking - prevent memory leaks in your unmanaged code.
 - [ ] Bit manipulation utilities - easily swap endianness.
 - [ ] WinAPI data types - Easy .NET to Windows type conversion. Do you miss your `DWORD`s, `BSTR`s and `LPCTSTR`s? Me neither, but if you have to use them for interop - here you go.
