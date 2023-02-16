@@ -1,6 +1,4 @@
-﻿//#define custom
-
-using BenchmarkDotNet.Running;
+﻿using BenchmarkDotNet.Running;
 using PrySec.Core.HwPrimitives;
 using PrySec.Core.IO;
 using PrySec.Core.Memory;
@@ -26,32 +24,40 @@ using Testing;
 
 unsafe
 {
-    byte* input = stackalloc byte[32];
-    for (int i = 1; i < 32; i+=2)
+    byte* input = stackalloc byte[16];
+    for (int i = 1; i < 16; i+=2)
     {
         input[i] = (byte)i;
     }
 
     byte* t = stackalloc byte[16];
-    for (int i = 0; i < 16; i++)
+    for (int i = 0; i < 8; i++)
     {
         t[i] = (byte)((2 * i) + 1);
     }
     Vector128<byte> exp = Sse2.LoadVector128(t);
 
-    Vector256<byte> v = Avx.LoadVector256(input);
-    Console.WriteLine(v);
+    Vector128<byte> v = Sse2.LoadVector128(input);
+    Console.WriteLine($"Input {v}");
 
-    for (int i = 0; i < 256; i++)
+    byte[] shuffleData = new byte[16]
     {
-        Vector256<byte> x = Avx2.Permute2x128(v, v, (byte)i);
-        if (x.GetUpper() == exp)
-        {
-            Console.WriteLine(i);
-        }
-        Console.WriteLine(x);
+        0x01, 0x03, 0x05, 0x07, 0x09, 0x0b, 0x0d, 0x0f,
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+    };
+
+    Vector128<byte> shuffle_mask;
+
+    fixed (byte* p = shuffleData)
+    {
+        shuffle_mask = Sse2.LoadVector128(p);
     }
 
+    Vector128<byte> shuffled = Ssse3.Shuffle(v, shuffle_mask);
+    Console.WriteLine(shuffled);
+    //Vector128<byte> result = Avx2.Permute4x64(shuffled.AsInt64(), AvxPrimitives._MM_SHUFFLE(3, 1, 2, 0)).AsByte();
+    //Console.WriteLine(result);
+    Console.WriteLine($"Expecting\n{exp}");
 }
 
 return;

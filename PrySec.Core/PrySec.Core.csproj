@@ -10,6 +10,7 @@
   <ItemGroup>
     <None Remove="Interop\Ntos\WinApi.cs~RF14fc508.TMP" />
     <None Remove="Interop\Ntos\WinApi.native.cs~RF1779d3a.TMP" />
+    <None Remove="Primitives\Converters\Hex\Intrinsics\Hw\HexConverter.ssse3.cs~RF92e364.TMP" />
   </ItemGroup>
 
 	<PropertyGroup Condition=" '$(OS)' == 'Windows_NT' ">

@@ -26,6 +26,7 @@ internal static unsafe class HexConverter__EffectiveArch
         {
             _ when Avx2.IsSupported => Use<HexConverterHwIntrinsicsAvx2>(),
             _ when Ssse3.IsSupported => Use<HexConverterHwIntrinsicsSsse3>(),
+            _ when Sse2.IsSupported => Use<HexConverterHwIntrinsicsSse2>(),
             _ when AdvSimd.IsSupported => Use<HexConverterHwIntrinsicsNeon>(),
             _ => Use<HexConverterHwIntrinsicsDefault>()
         };
