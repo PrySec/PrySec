@@ -40,6 +40,15 @@ public class HexConverterTests
     }
 
     [TestMethod]
+    public void UnhexlifyTest16_2()
+    {
+        const string expected = "8899AABBCCDDEEFF";
+        byte[] actualBytes = HexConverter.Unhexlify(expected);
+        string actual = Convert.ToHexString(actualBytes);
+        Assert.AreEqual(expected, actual);
+    }
+
+    [TestMethod]
     public void UnhexlifyTest()
     {
         for (int i = 0; i < 512; i++)

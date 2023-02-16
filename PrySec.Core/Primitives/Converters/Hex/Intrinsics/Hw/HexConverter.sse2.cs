@@ -4,37 +4,43 @@ using System.Runtime.Intrinsics.X86;
 using System.Runtime.Intrinsics;
 using PrySec.Core.HwPrimitives;
 using System.Diagnostics;
+using System.Runtime.Intrinsics.Arm;
 
 namespace PrySec.Core.Primitives.Converters.Hex.Intrinsics.Hw;
 
-internal unsafe class HexConverterHwIntrinsicsSse2 : IHexConverterImplementation
+internal unsafe class HexConverterHwIntrinsicsSse2 : HexConverter128BitBase, IHexConverterImplementation
 {
     public static int InputBlockSize => 16;
 
     public static int OutputBlockSize => 8;
 
-    private static readonly Vector128<byte> _selectMask;
+    private static readonly Vector128<byte> _clean11Mask;
 
-    private static readonly Vector128<uint> _0x03Mask;
+    private static readonly Vector128<byte> _clean22Mask;
 
-    private static readonly Vector128<uint> _0x08Mask;
+    private static readonly Vector128<byte> _clean44Mask;
 
-    private static readonly Vector128<uint> _0x0fMask;
+    private static readonly Vector128<byte> _clean88Mask;
 
     static HexConverterHwIntrinsicsSse2()
     {
-        byte* pSelectData = stackalloc byte[16]
+        byte* clean44MaskData = stackalloc byte[16]
         {
-            0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00,
-            0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00
+            0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0xff,
+            0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0xff,
         };
-        _selectMask = Sse2.LoadVector128(pSelectData);
-        _0x03Mask = Vector128.Create(0x03030303u);
-        _0x08Mask = Vector128.Create(0x08080808u);
-        _0x0fMask = Vector128.Create(0x0F0F0F0Fu);
+        byte* clean88MaskData = stackalloc byte[16]
+        {
+            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff
+        };
+        _clean11Mask = Vector128.Create(0xFF00FF00u).AsByte();
+        _clean22Mask = Vector128.Create(0xFF0000FFu).AsByte();
+        _clean44Mask = Sse2.LoadVector128(clean44MaskData);
+        _clean88Mask = Sse2.LoadVector128(clean88MaskData);
     }
 
-    public static unsafe void Unhexlify(byte* input, Size_T inputSize, byte* output, byte* workspaceBuffer)
+    public static unsafe void Unhexlify(byte* input, Size_T inputSize, byte* output)
     {
         Size_T i = inputSize;
         for (; i - InputBlockSize >= 0; i -= InputBlockSize, input += InputBlockSize, output += OutputBlockSize)
@@ -52,16 +58,6 @@ internal unsafe class HexConverterHwIntrinsicsSse2 : IHexConverterImplementation
                     Sse2.And(Sse2.ShiftRightLogical(uint32Input, 3), _0x0fMask), // (input >> 3) (shift as uint and 0 upper nibbles)
                     _0x08Mask)); // 0x8
 
-            stretchedNibbles.DebugPrint();
-
-            Vector128<ulong> s = Sse2.ShiftLeftLogical(stretchedNibbles.AsUInt64(), 4);
-
-            s.DebugPrint();
-
-            Vector128<ulong> bytes = Sse2.Or(s, Sse2.ShiftRightLogical(stretchedNibbles.AsUInt64(), 4));
-
-            bytes.DebugPrint();
-
             // result looks like this
             // 0H 0L 0H 0L 0H 0L 0H 0L (H = high nibble, L = lower nibble)
             // now shift high bytes left by 4 bit and interleave with lower nibble.
@@ -70,35 +66,52 @@ internal unsafe class HexConverterHwIntrinsicsSse2 : IHexConverterImplementation
             // highNibbles looks like this
             // 00 H0 L0 H0 L0 H0 L0 H0 (H = high nibble, L = lower nibble)
             // now combine higher and lower nibbles into hex decoded bytes.
-            Vector128<byte> combinedNibbles = Sse2.Or(highNibbles, stretchedNibbles).AsByte();
-
-            combinedNibbles.DebugPrint();
-            Debug.WriteLine("equal to?");
-            bytes.DebugPrint();
-
             // combinedNibbles looks like this
             // 0H HL LH HL LH HL LH HL where every second byte is valid.
-            // 0A AA AB BB BC CC CD DD ...
-            Vector128<byte> combinedNibblesShifted = Sse2.ShiftLeftLogical128BitLane(combinedNibbles, 1);
+            Vector128<byte> combinedNibbles = Sse2.Or(highNibbles, stretchedNibbles).AsByte();
 
-            combinedNibblesShifted.DebugPrint();
+            // 00 HL 00 HL 00 HL 00 HL
+            Vector128<byte> oneOne = Sse2.And(combinedNibbles, _clean11Mask);
 
-            // __m128i result = _mm_or_si128(_mm_and_si128(A, select_mask), _mm_andnot_si128(select_mask, A_shifted));
-            Vector128<byte> result = Sse2.Or(Sse2.And(combinedNibbles, _selectMask), Sse2.AndNot(_selectMask, combinedNibblesShifted));
+            // HL 00 HL 00 HL 00 HL 00
+            Vector128<byte> oneOneShifted = Sse2.ShiftRightLogical128BitLane(oneOne, 1);
 
-            result.DebugPrint();
+            // AA AA BB BB CC CC DD DD
+            Vector128<byte> twoTwoDirty = Sse2.Or(oneOneShifted, oneOne);
 
-            // result looks like this:
-            // AA BB CC DD EE FF GG HH 00 00 00 00 00 00 00 00
-            Vector64<byte> hexDecodedBytes = Vector128.GetLower(result);
+            // AA 00 00 BB CC 00 00 DD
+            Vector128<byte> twoTwo = Sse2.And(twoTwoDirty, _clean22Mask);
 
-            // hexDecodedBytes looks like this :)
+            // 00 BB CC 00 00 DD AA 00
+            Vector128<byte> twoTwoShifted = Sse2.ShiftRightLogical128BitLane(twoTwo, 2);
+
+            // AA BB CC BB CC DD AA DD
+            Vector128<byte> fourFourDirty = Sse2.Or(twoTwo, twoTwoShifted);
+
+            // AA BB CC 00 00 00 00 DD
+            Vector128<byte> fourFour = Sse2.And(fourFourDirty, _clean44Mask);
+
+            // 00 00 00 DD EE FF GG 00
+            Vector128<byte> fourFourShifted = Sse2.ShiftRightLogical128BitLane(fourFour, 4);
+
+            // AA BB CC DD EE FF GG DD
+            Vector128<byte> eightEightDirty = Sse2.Or(fourFour, fourFourShifted);
+
+            // AA BB CC DD EE FF GG 00 00 00 00 00 00 00 00 00 HH =
+            Vector128<byte> eightEight = Sse2.And(eightEightDirty, _clean88Mask);
+
+            // 00 00 00 00 00 00 00 HH 00 00 00 00 00 00 00 00 00
+            Vector128<byte> eightEitghShifted = Sse2.ShiftRightLogical128BitLane(eightEight, 8);
+
+            // AA BB CC DD EE FF GG HH 00 00 00 00 00 00 00 00 HH
+            Vector128<byte> result = Sse2.Or(eightEight, eightEitghShifted);
+
             // AA BB CC DD EE FF GG HH
-            *(ulong*)output = Vector64.ToScalar(hexDecodedBytes.AsUInt64());
+            *(ulong*)output = Vector128.GetLower(result).AsUInt64().ToScalar();
         }
         if (i > 0)
         {
-            HexConverterHwIntrinsicsDefault.Unhexlify(input, i, output, workspaceBuffer);
+            HexConverterHwIntrinsicsDefault.Unhexlify(input, i, output);
         }
     }
 }

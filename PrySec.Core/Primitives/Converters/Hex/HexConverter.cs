@@ -2,10 +2,9 @@
 using PrySec.Core.NativeTypes;
 using PrySec.Core.Primitives.Converters.Hex.Intrinsics;
 using System;
-using System.Collections.Generic;
-using System.Linq;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace PrySec.Core.Primitives.Converters;
 
@@ -46,4 +45,33 @@ public static unsafe class HexConverter
         }
         return outputBuffer;
     }
+
+    public static void Unhexlify(byte* input, Size_T inputSize, byte* output, Size_T outputSize)
+    {
+        // performance-happy fast path
+        if (inputSize % 2 == 0 && outputSize >= inputSize / 2)
+        {
+            HexConverter__EffectiveArch.DispatchUnhexlify(input, inputSize, output);
+            return;
+        }
+        if (inputSize % 2 == 1)
+        {
+            ThrowInvalidHexInput();
+        }
+        else
+        {
+            ThrowOutputTooSmall();
+        }
+        HexConverter__EffectiveArch.DispatchUnhexlify(input, inputSize, output);
+    }
+
+    [StackTraceHidden]
+    [DoesNotReturn]
+    private static void ThrowInvalidHexInput() => 
+        throw new ArgumentException("A valid hex string must be provided!", "input");
+
+    [StackTraceHidden]
+    [DoesNotReturn]
+    private static void ThrowOutputTooSmall() =>
+        throw new ArgumentOutOfRangeException("outputSize", "output buffer is too small!");
 }

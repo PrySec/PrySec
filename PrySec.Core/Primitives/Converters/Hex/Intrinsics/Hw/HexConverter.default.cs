@@ -13,7 +13,7 @@ internal class HexConverterHwIntrinsicsDefault : IHexConverterImplementation
 
     public static int OutputBlockSize => 1;
 
-    public static unsafe void Unhexlify(byte* input, Size_T inputSize, byte* output, byte* workspaceBuffer)
+    public static unsafe void Unhexlify(byte* input, Size_T inputSize, byte* output)
     {
         // TODO: use word-size
         for (Size_T i = 0; i < inputSize; i += 2, input += 2, output++)

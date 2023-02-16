@@ -1,72 +1,38 @@
 ﻿using BenchmarkDotNet.Attributes;
-using PrySec.Core.Memory.MemoryManagement.Implementations.AllocationTracking;
-using PrySec.Core.Memory.MemoryManagement.Implementations;
 using System;
+using PrySec.Core.Primitives.Converters;
+using PrySec.Core.NativeTypes;
+using System.Text;
 using PrySec.Core.Memory.MemoryManagement;
-using System.Runtime.CompilerServices;
-using Microsoft.Diagnostics.Tracing.Parsers.JScript;
 
 namespace Testing;
 
-public interface I
+public unsafe class Test
 {
-    int Foo { get; }
-}
+    private readonly string input;
 
-public class C : I
-{
-    public int Foo { get; }
+    private readonly byte* pInput;
 
-    public C(int foo)
+    private readonly Size_T inputSize;
+
+    private readonly byte* pOutput;
+
+    private static readonly Size_T outputSize = 8192;
+
+    public Test()
     {
-        Foo = foo;
-    }
-}
-
-public static class T
-{
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    public static int Direct(C c) => c.Foo;
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    public static int Interface(I i) => i.Foo;
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    public static int Generic<TI>(TI t) where TI : I => t.Foo;
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    public static int RefDirect(ref C c) => c.Foo;
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    public static int RefInterface(ref I i) => i.Foo;
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    public static int RefGeneric<TC>(ref TC t) where TC : I => t.Foo;
-}
-
-public class Test
-{
-    private C c = new(42);
-
-    [Benchmark]
-    public int TestDirect() => T.Direct(c);
-
-    [Benchmark]
-    public int TestInterface() => T.Interface(c);
-
-    [Benchmark]
-    public int Generic() => T.Generic(c);
-
-    [Benchmark]
-    public int TestRef() => T.RefDirect(ref c);
-
-    [Benchmark]
-    public int TestRefInterface()
-    {
-        I i = c;
-        return T.RefInterface(ref i);
+        Random random = new(42);
+        byte[] bytes = new byte[outputSize];
+        random.NextBytes(bytes);
+        input = Convert.ToHexString(bytes);
+        inputSize = Encoding.ASCII.GetByteCount(input);
+        pInput = (byte*)MemoryManager.Malloc(inputSize);
+        pOutput = (byte*)MemoryManager.Malloc(outputSize);
     }
 
+    [Benchmark(Baseline = true)]
+    public byte[] ConvertFromHex() => Convert.FromHexString(input);
+
     [Benchmark]
-    public int TestRefGeneric() => T.RefGeneric(ref c);
+    public void HwAccelerated() => HexConverter.Unhexlify(pInput, inputSize, pOutput, outputSize);
 }

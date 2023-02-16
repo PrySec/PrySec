@@ -22,6 +22,10 @@ using System.Text;
 using System.Threading;
 using Testing;
 
+BenchmarkRunner.Run<Test>();
+
+return;
+
 unsafe
 {
     byte* input = stackalloc byte[16];
@@ -39,25 +43,37 @@ unsafe
 
     Vector128<byte> v = Sse2.LoadVector128(input);
     Console.WriteLine($"Input {v}");
+    Console.WriteLine(exp.GetLower());
 
-    byte[] shuffleData = new byte[16]
+    Vector64<byte> final = exp.GetLower();
+
+    // result looks like this
+    // 0H 0L 0H 0L 0H 0L 0H 0L (H = high nibble, L = lower nibble)
+    // now shift high bytes left by 4 bit and interleave with lower nibble.
+    Vector128<uint> highNibbles = Sse2.ShiftLeftLogical128BitLane(Sse2.ShiftLeftLogical(v.AsUInt32(), 4), 1); // LITTLE ENDIAN!!!
+
+    // highNibbles looks like this
+    // 00 H0 L0 H0 L0 H0 L0 H0 (H = high nibble, L = lower nibble)
+    // now combine higher and lower nibbles into hex decoded bytes.
+    v = Sse2.Or(highNibbles, v.AsUInt32()).AsByte();
+
+    for (int i = 0; i < 256; i++)
     {
-        0x01, 0x03, 0x05, 0x07, 0x09, 0x0b, 0x0d, 0x0f,
-        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-    };
-
-    Vector128<byte> shuffle_mask;
-
-    fixed (byte* p = shuffleData)
-    {
-        shuffle_mask = Sse2.LoadVector128(p);
+        for (int j = 0; j < 256; j++)
+        {
+            Vector128<short> lo = Sse2.ShuffleLow(v.AsInt16(), (byte)i);
+            //Vector128<short> hi = Sse2.ShuffleHigh(v.AsInt16(), (byte)j);
+            //Vector128<byte> res = Sse2.Or(Sse2.ShiftLeftLogical128BitLane(hi, 1), lo).AsByte();//Sse2.UnpackLow(lo, hi).AsByte();//Sse2.Or(Sse2.UnpackLow(lo, hi), Sse2.UnpackHigh(loHi, hiHi)).AsByte();
+            //if (final == res.GetUpper() || final == res.GetLower())
+            //{
+            //    Console.WriteLine(res);
+            //    Console.WriteLine($"{i}, {j}");
+            //    return;
+            //}
+            Console.WriteLine(lo.AsByte());
+        }
+        Console.WriteLine(i);
     }
-
-    Vector128<byte> shuffled = Ssse3.Shuffle(v, shuffle_mask);
-    Console.WriteLine(shuffled);
-    //Vector128<byte> result = Avx2.Permute4x64(shuffled.AsInt64(), AvxPrimitives._MM_SHUFFLE(3, 1, 2, 0)).AsByte();
-    //Console.WriteLine(result);
-    Console.WriteLine($"Expecting\n{exp}");
 }
 
 return;

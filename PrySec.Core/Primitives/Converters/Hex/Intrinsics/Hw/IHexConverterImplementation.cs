@@ -8,5 +8,5 @@ internal unsafe interface IHexConverterImplementation
 
     static abstract int OutputBlockSize { get; }
 
-    static abstract void Unhexlify(byte* input, Size_T inputSize, byte* output, byte* workspaceBuffer);
+    static abstract void Unhexlify(byte* input, Size_T inputSize, byte* output);
 }
