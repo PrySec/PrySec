@@ -22,62 +22,6 @@ using System.Text;
 using System.Threading;
 using Testing;
 
-BenchmarkRunner.Run<Test>();
-
-return;
-
-unsafe
-{
-    byte* input = stackalloc byte[16];
-    for (int i = 1; i < 16; i+=2)
-    {
-        input[i] = (byte)i;
-    }
-
-    byte* t = stackalloc byte[16];
-    for (int i = 0; i < 8; i++)
-    {
-        t[i] = (byte)((2 * i) + 1);
-    }
-    Vector128<byte> exp = Sse2.LoadVector128(t);
-
-    Vector128<byte> v = Sse2.LoadVector128(input);
-    Console.WriteLine($"Input {v}");
-    Console.WriteLine(exp.GetLower());
-
-    Vector64<byte> final = exp.GetLower();
-
-    // result looks like this
-    // 0H 0L 0H 0L 0H 0L 0H 0L (H = high nibble, L = lower nibble)
-    // now shift high bytes left by 4 bit and interleave with lower nibble.
-    Vector128<uint> highNibbles = Sse2.ShiftLeftLogical128BitLane(Sse2.ShiftLeftLogical(v.AsUInt32(), 4), 1); // LITTLE ENDIAN!!!
-
-    // highNibbles looks like this
-    // 00 H0 L0 H0 L0 H0 L0 H0 (H = high nibble, L = lower nibble)
-    // now combine higher and lower nibbles into hex decoded bytes.
-    v = Sse2.Or(highNibbles, v.AsUInt32()).AsByte();
-
-    for (int i = 0; i < 256; i++)
-    {
-        for (int j = 0; j < 256; j++)
-        {
-            Vector128<short> lo = Sse2.ShuffleLow(v.AsInt16(), (byte)i);
-            //Vector128<short> hi = Sse2.ShuffleHigh(v.AsInt16(), (byte)j);
-            //Vector128<byte> res = Sse2.Or(Sse2.ShiftLeftLogical128BitLane(hi, 1), lo).AsByte();//Sse2.UnpackLow(lo, hi).AsByte();//Sse2.Or(Sse2.UnpackLow(lo, hi), Sse2.UnpackHigh(loHi, hiHi)).AsByte();
-            //if (final == res.GetUpper() || final == res.GetLower())
-            //{
-            //    Console.WriteLine(res);
-            //    Console.WriteLine($"{i}, {j}");
-            //    return;
-            //}
-            Console.WriteLine(lo.AsByte());
-        }
-        Console.WriteLine(i);
-    }
-}
-
-return;
-
 using ProcfsMapsParser mapsParser = new(256);
 using ProcfsMemoryRegionInfoList list = mapsParser.QueryProcfs();
 

@@ -1,12 +1,16 @@
 using System;
+using System.Buffers.Binary;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Text;
+using PrySec.Core.HwPrimitives;
 using PrySec.Core.IO;
 using PrySec.Core.Memory;
 using PrySec.Core.Memory.MemoryManagement;
 using PrySec.Core.NativeTypes;
+using PrySec.Core.Primitives.Converters;
 
 namespace PrySec.Core.Native.UnixLike;
 
@@ -50,17 +54,66 @@ public unsafe class ProcfsMapsParser : IDisposable
         while ((bytesRead = _stream.ReadLine(buf)) != -1)
         {
             ProcfsMemoryRegionInfo* pInfo = (ProcfsMemoryRegionInfo*)MemoryManager.Malloc(sizeof(ProcfsMemoryRegionInfo));
+            pInfo->Path = null;
             ParseLine(_buffer, bytesRead, pInfo);
             procfsInfo.Add(pInfo);
         }
         return procfsInfo;
     }
 
-    private static void ParseLine(byte* pLine, Size_T lineLength, ProcfsMemoryRegionInfo* pInfo)
+    private static void ParseLine(byte* line, Size_T size, ProcfsMemoryRegionInfo* pInfo)
     {
         // TODO parse...
-        Console.WriteLine($"Mock parsing: {Encoding.ASCII.GetString(pLine, lineLength)}");
+        Console.WriteLine($"Mock parsing: {Encoding.ASCII.GetString(line, size)}");
+
+        byte* start = line;
+        byte* current = line;
+        Size_T count = 0;
+
+        // addr1
+        for (; size > 0 && *current != '-'; size--, current++, count++)
+        {
+            Nop();
+        }
+        // in-place hex-decode
+        int offset = (sizeof(ulong) - (count / 2));
+        ulong addressMask = (~0uL) >>> (offset * 8);
+        HexConverter.Unhexlify(start, count, start + offset, count);
+        ulong startAddress = BinaryUtils.ReadUInt64BigEndian((ulong*)start) & addressMask;
+        pInfo->RegionStartAddress = (nint)startAddress;
+
+        // addr2
+        current++;
+        size--;
+        HexConverter.Unhexlify(current, count, start + offset, count);
+        ulong endAddress = BinaryUtils.ReadUInt64BigEndian((ulong*)start) & addressMask;
+        pInfo->RegionEndAddress = (nint)endAddress;
+        size -= count;
+
+        // size
+        pInfo->RegionSize = (Size_T)(endAddress - startAddress);
+
+        SkipWhiteSpace(&current, &size);
+
+        uint perms = BinaryUtils.ReadUInt32BigEndian((uint*)current);
+        pInfo->Permissions = ProcfsPermissionParser.Parse(perms);
+
+        Console.WriteLine(pInfo->ToString());
     }
+
+    
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void SkipWhiteSpace(byte** pp, Size_T* pSize)
+    {
+        for (byte b = **pp; (b == ' ' || b == '\t') && *pSize > 0; b = *++*pp, ++*pSize)
+        {
+            Nop();
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void Nop() { }
 
     protected virtual void Dispose(bool disposing)
     {
@@ -257,6 +310,11 @@ public unsafe struct ProcfsMemoryRegionInfo
         Path == null 
             ? null 
             : Encoding.ASCII.GetString(Path, PathLength);
+
+    public override readonly string ToString()
+    {
+        return $"{{0x{RegionStartAddress:x16}-0x{RegionEndAddress:x16} ({RegionSize} bytes) {Convert.ToString((int)Permissions, 2).PadLeft(5, '0')} {Offset} {Device} {Inode} {ReadPath() ?? string.Empty}}}";
+    }
 }
 
 [Flags]
@@ -267,6 +325,22 @@ public enum ProcfsPermissions : int
     Write = 0x2,
     Read = 0x4,
     Shared = 0x8,
+}
+
+public static class ProcfsPermissionParser
+{
+    private const uint PERM_READ = 'r' << 24;
+    private const uint PERM_WRITE = 'w' << 16;
+    private const uint PERM_EXEC = 'x' << 8;
+    private const uint PERM_SHRD = 's' << 0;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ProcfsPermissions Parse(uint data) => 
+        ProcfsPermissions.NoAccess
+        | (ProcfsPermissions)(~((-(int)((data & PERM_READ) ^ PERM_READ)) >> 31) & (int)ProcfsPermissions.Read)
+        | (ProcfsPermissions)(~((-(int)((data & PERM_WRITE) ^ PERM_WRITE)) >> 31) & (int)ProcfsPermissions.Write)
+        | (ProcfsPermissions)(~((-(int)((data & PERM_EXEC) ^ PERM_EXEC)) >> 31) & (int)ProcfsPermissions.Execute)
+        | (ProcfsPermissions)(~((-(int)((data & PERM_SHRD) ^ PERM_SHRD)) >> 31) & (int)ProcfsPermissions.Shared);
 }
 
 public readonly struct ProcfsDevice

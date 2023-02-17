@@ -30,7 +30,9 @@ public unsafe readonly struct Size_T
 
     public static implicit operator Size_T(nuint i) => new(i);
 
-    public static explicit operator IntPtr(Size_T size) => new(size);
+    public static explicit operator Size_T(ulong i) => new((nuint)i);
+
+    public static explicit operator nint(Size_T size) => (nint)size.value;
     
     public static explicit operator byte(Size_T size) => (byte)size.value;
 
@@ -55,4 +57,6 @@ public unsafe readonly struct Size_T
     public static readonly int ByteSize = sizeof(nint);
 
     public static readonly int BitSize = sizeof(nint) << 3;
+
+    public override string ToString() => value.ToString();
 }
