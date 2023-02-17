@@ -24,10 +24,6 @@ using System.Text;
 using System.Threading;
 using Testing;
 
-BenchmarkRunner.Run<Test>();
-
-return;
-
 MemoryManager.UseImplementation<AllocationTracker<NativeMemoryManager>>();
 
 for (int i = 0; i < 512; i++)
@@ -147,13 +143,6 @@ unsafe
     Console.WriteLine($"{mem.NativeHandle:x16}");
     string s = File.ReadAllText("/proc/self/maps");
     Console.WriteLine(s);
-}
-
-static unsafe int QueryProcSelf(nint handle)
-{
-    using Stream s = File.OpenRead("/proc/self/maps");
-    Console.WriteLine(s.Length);
-    return 0;
 }
 
 #if false
