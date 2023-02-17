@@ -78,8 +78,9 @@ public class HexConverterTests
     [TestMethod]
     public void UnhexlifyTest4_2()
     {
+        const string input = "aabb";
         const string expected = "AABB";
-        byte[] actualBytes = HexConverter.Unhexlify(expected);
+        byte[] actualBytes = HexConverter.Unhexlify(input);
         string actual = Convert.ToHexString(actualBytes);
         Assert.AreEqual(expected, actual);
     }
