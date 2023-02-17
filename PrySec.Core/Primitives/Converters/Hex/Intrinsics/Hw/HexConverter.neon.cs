@@ -1,4 +1,5 @@
 ﻿using PrySec.Core.NativeTypes;
+using System;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
 

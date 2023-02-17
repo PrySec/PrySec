@@ -204,6 +204,16 @@ public static unsafe partial class BinaryUtils
             ? BinaryPrimitives.ReverseEndianness(value)
             : value;
 
+    public static unsafe ulong Strtoull(byte* s, Size_T length)
+    {
+        ulong counter = 0;
+        for (byte b = *s; length > 0; length--, b = *++s)
+        {
+            counter += (ulong)(b & 0x0f) * (ulong)Math.Pow(10, (int)length - 1);
+        }
+        return counter;
+    }
+
     #region read LE
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

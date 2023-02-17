@@ -4,7 +4,9 @@ using PrySec.Core.IO;
 using PrySec.Core.Memory;
 using PrySec.Core.Memory.MemoryManagement;
 using PrySec.Core.Memory.MemoryManagement.Implementations;
-using PrySec.Core.Native.UnixLike;
+using PrySec.Core.Memory.MemoryManagement.Implementations.AllocationTracking;
+using PrySec.Core.Native.UnixLike.Procfs;
+using PrySec.Core.Primitives.Converters;
 using PrySec.Security.Cryptography.Hashing.Blake2;
 using PrySec.Security.MemoryProtection.Native.Ntos.DPApi;
 using PrySec.Security.MemoryProtection.Native.Ntos.MemoryApi;
@@ -22,6 +24,33 @@ using System.Text;
 using System.Threading;
 using Testing;
 
+BenchmarkRunner.Run<Test>();
+
+return;
+
+MemoryManager.UseImplementation<AllocationTracker<NativeMemoryManager>>();
+
+for (int i = 0; i < 512; i++)
+{
+    byte[] bytes = new byte[i];
+    Random random = new(42);
+    for (int j = 0; j < 64; j++)
+    {
+        random.NextBytes(bytes);
+        string expected = Convert.ToHexString(bytes);
+        byte[] actualBytes = HexConverter.Unhexlify(expected);
+        string actual = Convert.ToHexString(actualBytes);
+        if (!actual.Equals(expected))
+        {
+            throw new Exception("not equal");
+        }
+    }
+}
+Console.WriteLine("32768 Tests succeeded");
+Console.WriteLine(MemoryManager.GetAllocationSnapshot());
+
+return;
+
 //string sPerms = "r-xp";
 //byte[] byteData = Encoding.ASCII.GetBytes(sPerms);
 //uint permData = BinaryPrimitives.ReadUInt32BigEndian(new Span<byte>(byteData));
@@ -31,8 +60,30 @@ using Testing;
 
 //return;
 
-using ProcfsMapsParser mapsParser = new(256);
-using ProcfsMemoryRegionInfoList list = mapsParser.QueryProcfs();
+unsafe
+{
+    MemoryManager.UseImplementation<AllocationTracker<NativeMemoryManager>>();
+
+    using ProcfsMapsParser mapsParser = new(256);
+
+    ProcfsMemoryRegionInfo* pInfo = stackalloc ProcfsMemoryRegionInfo[1];
+
+    if (mapsParser.TryVirtualQueryEx("maps.txt", unchecked((nint)0x7ffea68fd000), pInfo))
+    {
+        Console.WriteLine("Found it:");
+        Console.WriteLine(pInfo->ToString());
+        if (pInfo->Path != null)
+        {
+            MemoryManager.Free(pInfo->Path);
+        }
+    }
+    else
+    {
+        Console.WriteLine("sad times");
+    }
+}
+
+Console.WriteLine(MemoryManager.GetAllocationSnapshot());
 
 return;
 

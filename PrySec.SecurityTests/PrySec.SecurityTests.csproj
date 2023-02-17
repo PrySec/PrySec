@@ -10,6 +10,9 @@
     <PropertyGroup Condition=" '$(OS)' == 'Windows_NT' ">
         <DefineConstants>WIN32</DefineConstants>
     </PropertyGroup>
+    <PropertyGroup Condition=" '$(Platform)' == 'x64' Or '$(Platform)' == 'ARM64'">
+        <DefineConstants>IS_64_BIT</DefineConstants>
+    </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.4.1" />

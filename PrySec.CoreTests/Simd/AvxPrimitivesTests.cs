@@ -1,11 +1,12 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PrySec.Core.HwPrimitives;
+using PrySec.CoreTests;
 using System.Runtime.Intrinsics;
 
 namespace PrySec.Core.Simd.Tests;
 
 [TestClass()]
-public class AvxPrimitivesTests
+public class AvxPrimitivesTests : BaseTest
 {
     [TestMethod()]
     public void RotateLaneLeft64BitTest1()

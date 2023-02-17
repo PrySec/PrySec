@@ -1,5 +1,6 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PrySec.Core.Primitives.Converters;
+using PrySec.CoreTests;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,7 +11,7 @@ using System.Threading.Tasks;
 namespace PrySec.Core.Primitives.Converters.Tests;
 
 [TestClass]
-public class HexConverterTests
+public class HexConverterTests : BaseTest
 {
     [TestMethod]
     public void UnhexlifyTest32()
