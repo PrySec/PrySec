@@ -25,8 +25,20 @@ public unsafe class ProcfsMapsParserTests : BaseTest
             Assert.AreEqual((nuint)0, pInfo->Offset);
             Assert.AreEqual(new ProcfsDevice(0, 0), pInfo->Device);
             Assert.AreEqual(0, pInfo->Inode);
-            Assert.AreEqual(7, pInfo->PathLength);
-            Assert.AreEqual("[stack]", pInfo->ReadPath());
+            string? path = pInfo->ReadPath();
+            Assert.IsNotNull(path);
+            if (path.Length == 8)
+            {
+                // damn you Windows CRLF (real /proc/.../maps only has LF)
+                Assert.AreEqual('\r', path[^1]);
+                Assert.AreEqual("[stack]", path.TrimEnd());
+                Assert.AreEqual(8, pInfo->PathLength);
+            }
+            else
+            {
+                Assert.AreEqual("[stack]", path);
+                Assert.AreEqual(7, pInfo->PathLength);
+            }
             Assert.AreEqual(pInfo->Permissions, ProcfsPermissions.Read | ProcfsPermissions.Write);
             if (pInfo->Path != null)
             {
