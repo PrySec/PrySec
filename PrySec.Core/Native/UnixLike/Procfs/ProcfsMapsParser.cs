@@ -125,7 +125,7 @@ public unsafe class ProcfsMapsParser : IDisposable
         for (; size > 0 && *current != '-'; size--, current++, count++) { }
 
         // in-place hex-decode
-        int offset = sizeof(ulong) - count / 2;
+        int offset = sizeof(ulong) - (count / 2);
         ulong addressMask = (~0uL) >>> (offset * 8);
         HexConverter.Unhexlify(start, count, start + offset, count);
         nint startAddress = (nint)(BinaryUtils.ReadUInt64BigEndian((ulong*)start) & addressMask);
@@ -163,7 +163,7 @@ public unsafe class ProcfsMapsParser : IDisposable
         count = 0;
         start = current;
         for (byte b = *current; size > 0 && b != ' ' && b != '\t'; size--, b = *++current, count++) { }
-        offset = sizeof(ulong) - count / 2;
+        offset = sizeof(ulong) - (count / 2);
         ulong offsetMask = (~0uL) >>> (offset * 8);
         HexConverter.Unhexlify(start, count, start + offset, count);
         ulong offsetData = BinaryUtils.ReadUInt64BigEndian((ulong*)start) & offsetMask;

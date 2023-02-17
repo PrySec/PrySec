@@ -10,4 +10,3 @@ internal unsafe interface IHexConverterImplementation
 
     static abstract void Unhexlify(byte* input, Size_T inputSize, byte* output);
 }
-
