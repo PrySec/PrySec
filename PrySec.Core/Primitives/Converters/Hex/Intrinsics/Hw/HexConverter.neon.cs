@@ -30,8 +30,7 @@ internal unsafe class HexConverterHwIntrinsicsNeon : HexConverter128BitBase, IHe
 
     public static unsafe void Unhexlify(byte* input, Size_T inputSize, byte* output)
     {
-        Size_T i = inputSize;
-        for (; i - InputBlockSize >= 0; i -= InputBlockSize, input += InputBlockSize, output += OutputBlockSize)
+        for (; inputSize - InputBlockSize >= 0; inputSize -= InputBlockSize, input += InputBlockSize, output += OutputBlockSize)
         {
             // (input & 0xF) + (input >> 6) | ((input >> 3) & 0x8);
             Vector128<uint> uint32Input = AdvSimd.LoadVector128((uint*)input);
@@ -41,9 +40,12 @@ internal unsafe class HexConverterHwIntrinsicsNeon : HexConverter128BitBase, IHe
             Vector128<byte> stretchedNibbles = AdvSimd.Or(
                 AdvSimd.Add(// (input & 0xF) + (input >> 6)
                     AdvSimd.And(uint32Input, _0x0fMask), // (input & 0xF)
-                    AdvSimd.And(AdvSimd.ShiftRightLogical(uint32Input, 6), _0x03Mask)),// (input >> 6) (shift as uint and 0 upper 6 bits in every byte)
+                    // (input >> 6) (shift as uint and 0 upper 6 bits in every byte)
+                    AdvSimd.And(AdvSimd.ShiftRightLogical(uint32Input, 6), _0x03Mask)),
                 AdvSimd.And( // ((input >> 3) & 0x8);
-                    AdvSimd.And(AdvSimd.ShiftRightLogical(uint32Input, 3), _0x0fMask), // (input >> 3) (shift as uint and 0 upper nibbles)
+                    // don't need to mask off "invalid" bits from shifting here!
+                    // they get eliminated by 0x08 mask :)
+                    AdvSimd.ShiftRightLogical(uint32Input, 3), // (input >> 3)
                     _0x08Mask)) // 0x8
                 .AsByte();
 
@@ -63,9 +65,9 @@ internal unsafe class HexConverterHwIntrinsicsNeon : HexConverter128BitBase, IHe
             // AA BB CC DD EE FF GG HH
             AdvSimd.Store(output, result);
         }
-        if (i > 0)
+        if (inputSize > 0)
         {
-            HexConverterHwIntrinsicsDefault.Unhexlify(input, i, output);
+            HexConverterHwIntrinsicsDefault.Unhexlify(input, inputSize, output);
         }
     }
 }

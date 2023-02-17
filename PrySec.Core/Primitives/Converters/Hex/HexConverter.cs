@@ -62,7 +62,6 @@ public static unsafe class HexConverter
         {
             ThrowOutputTooSmall();
         }
-        HexConverter__EffectiveArch.DispatchUnhexlify(input, inputSize, output);
     }
 
     [StackTraceHidden]

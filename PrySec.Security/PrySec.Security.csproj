@@ -1,9 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-	<TargetFramework>net7.0</TargetFramework>
-	<LangVersion>latest</LangVersion>
-	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <TargetFramework>net7.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
@@ -16,7 +16,7 @@
     <Compile Include=".properies\AssemblyInfo.cs" />
   </ItemGroup>
 
-	<ItemGroup>
+    <ItemGroup>
     <ProjectReference Include="..\PrySec.Core\PrySec.Core.csproj" />
   </ItemGroup>
 

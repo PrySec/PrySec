@@ -9,5 +9,5 @@ public class PosixException : Exception
 
 	public PosixException(int errno) : this(PosixErrorCodes.GetPosixErrorMessage(errno)) { }
 
-    protected PosixException(string message) : base(message) { }
+	protected PosixException(string message) : base(message) { }
 }
