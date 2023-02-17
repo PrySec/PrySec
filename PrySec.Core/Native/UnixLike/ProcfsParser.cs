@@ -96,9 +96,11 @@ public unsafe class ProcfsMapsParser : IDisposable
         SkipWhiteSpace(&current, &size);
 
         uint perms = BinaryUtils.ReadUInt32BigEndian((uint*)current);
+        System.Console.WriteLine(perms);
         pInfo->Permissions = ProcfsPermissionParser.Parse(perms);
+        System.Console.WriteLine(pInfo->Permissions);
 
-        Console.WriteLine(pInfo->ToString());
+        //Console.WriteLine(pInfo->ToString());
     }
 
     
@@ -313,7 +315,7 @@ public unsafe struct ProcfsMemoryRegionInfo
 
     public override readonly string ToString()
     {
-        return $"{{0x{RegionStartAddress:x16}-0x{RegionEndAddress:x16} ({RegionSize} bytes) {Convert.ToString((int)Permissions, 2).PadLeft(5, '0')} {Offset} {Device} {Inode} {ReadPath() ?? string.Empty}}}";
+        return $"{{0x{RegionStartAddress:x16}-0x{RegionEndAddress:x16} ({RegionSize} bytes) {(Permissions.ToString())} {Offset} {Device} {Inode} {ReadPath() ?? string.Empty}}}";
     }
 }
 
