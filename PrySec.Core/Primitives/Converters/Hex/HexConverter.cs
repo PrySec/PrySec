@@ -12,6 +12,10 @@ public static unsafe class HexConverter
 {
     public static byte[] Unhexlify(string hex)
     {
+        if (hex.Length == 0)
+        {
+            return Array.Empty<byte>();
+        }
         int inputSize = Encoding.ASCII.GetByteCount(hex);
         if (inputSize % 2 == 1)
         {
@@ -49,9 +53,13 @@ public static unsafe class HexConverter
     public static void Unhexlify(byte* input, Size_T inputSize, byte* output, Size_T outputSize)
     {
         // performance-happy fast path
-        if (inputSize % 2 == 0 && outputSize >= inputSize / 2)
+        if (inputSize > 0 && inputSize % 2 == 0 && outputSize >= inputSize / 2)
         {
             HexConverter__EffectiveArch.DispatchUnhexlify(input, inputSize, output);
+            return;
+        }
+        if (inputSize == 0)
+        {
             return;
         }
         if (inputSize % 2 == 1)

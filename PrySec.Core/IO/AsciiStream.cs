@@ -13,7 +13,9 @@ public unsafe class AsciiStream : IDisposable
 
     private Stream? _inner;
 
-    private readonly byte* _buffer;
+    private readonly byte* _bufferStart;
+
+    private byte* _currentPosition;
 
     private readonly Size_T _bufferSize;
 
@@ -23,7 +25,7 @@ public unsafe class AsciiStream : IDisposable
     {
         _inner = inner;
         _bufferSize = bufferSize;
-        _buffer = (byte*)MemoryManager.Malloc(_bufferSize);
+        _bufferStart = (byte*)MemoryManager.Malloc(_bufferSize);
     }
 
     public void Reset(Stream newInner)
@@ -43,13 +45,14 @@ public unsafe class AsciiStream : IDisposable
     public int ReadLine(Span<byte> output)
     {
         ThrowIfDisposed();
-        Span<byte> buffer = new(_buffer, _bufferSize);
 
         int outputOffset = 0;
         do
         {
             if (_currentSize == 0)
             {
+                _currentPosition = _bufferStart;
+                Span<byte> buffer = new(_bufferStart, _bufferSize);
                 int bytesWritten = _inner!.Read(buffer);
                 _currentSize = bytesWritten;
                 if (bytesWritten <= 0)
@@ -64,21 +67,14 @@ public unsafe class AsciiStream : IDisposable
                 }
             }
             int maxSliceLength = FastMath.Min(_currentSize, output.Length - outputOffset);
-            bool foundLf = SliceUntilNewLine(_buffer, maxSliceLength, out Span<byte> line);
+            bool foundLf = SliceUntilNewLine(_currentPosition, maxSliceLength, out Span<byte> line);
             // store result
             line.CopyTo(output[outputOffset..]);
             outputOffset += line.Length;
             int removeLfAdditionalOffset = foundLf ? 1 : 0;
-            int remainingStartOffset = line.Length + removeLfAdditionalOffset;
-            Size_T remainingSize = _currentSize - remainingStartOffset;
-            if (remainingSize > 0)
-            {
-                // remove result from cache
-                // TODO: use pointer arithmetic instead: move pointer until we reach the end of the buffer then reset pointer
-                // TODO: we don't need to copy memory around. just use pointers. 
-                Span<byte> remaining = buffer[remainingStartOffset.._currentSize];
-                remaining.CopyTo(buffer);
-            }
+            int bytesRead = line.Length + removeLfAdditionalOffset;
+            _currentPosition += bytesRead;
+            Size_T remainingSize = _currentSize - bytesRead;
             _currentSize = remainingSize;
 
             if (foundLf || outputOffset >= output.Length)
@@ -197,7 +193,7 @@ public unsafe class AsciiStream : IDisposable
     {
         if (!disposedValue)
         {
-            MemoryManager.Free(_buffer);
+            MemoryManager.Free(_bufferStart);
             disposedValue = true;
         }
     }
