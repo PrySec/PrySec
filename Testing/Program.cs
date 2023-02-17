@@ -22,14 +22,14 @@ using System.Text;
 using System.Threading;
 using Testing;
 
-string sPerms = "r-xp";
-byte[] byteData = Encoding.ASCII.GetBytes(sPerms);
-uint permData = BinaryPrimitives.ReadUInt32BigEndian(new Span<byte>(byteData));
+//string sPerms = "r-xp";
+//byte[] byteData = Encoding.ASCII.GetBytes(sPerms);
+//uint permData = BinaryPrimitives.ReadUInt32BigEndian(new Span<byte>(byteData));
 
-ProcfsPermissions perms = ProcfsPermissionParser.Parse(permData);
-Console.WriteLine(perms);
+//ProcfsPermissions perms = ProcfsPermissionParser.Parse(permData);
+//Console.WriteLine(perms);
 
-return;
+//return;
 
 using ProcfsMapsParser mapsParser = new(256);
 using ProcfsMemoryRegionInfoList list = mapsParser.QueryProcfs();

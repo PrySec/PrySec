@@ -111,6 +111,7 @@ public unsafe class ProcfsMapsParser : IDisposable
         for (byte b = **pp; (b == ' ' || b == '\t') && *pSize > 0; b = *++*pp, ++*pSize)
         {
             Nop();
+            System.Console.WriteLine("skip");
         }
     }
 
