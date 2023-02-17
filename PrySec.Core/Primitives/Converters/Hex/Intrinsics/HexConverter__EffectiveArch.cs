@@ -1,5 +1,6 @@
 ﻿using PrySec.Core.NativeTypes;
 using PrySec.Core.Primitives.Converters.Hex.Intrinsics.Hw;
+using System;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 
@@ -12,23 +13,24 @@ internal static unsafe class HexConverter__EffectiveArch
     /// </summary>
     public static delegate*<byte*, Size_T, byte*, void> DispatchUnhexlify { get; private set; }
 
-    private static readonly int _inputBlockSize;
+    private static readonly int _simdInputBlockSize;
 
     static HexConverter__EffectiveArch()
     {
-        _inputBlockSize = 0 switch
+        _simdInputBlockSize = 0 switch
         {
             _ when Avx2.IsSupported => Use<HexConverterHwIntrinsicsAvx2>(),
             _ when Ssse3.IsSupported => Use<HexConverterHwIntrinsicsSsse3>(),
             _ when Sse2.IsSupported => Use<HexConverterHwIntrinsicsSse2>(),
             _ when AdvSimd.IsSupported => Use<HexConverterHwIntrinsicsNeon>(),
-            _ => Use<HexConverterHwIntrinsicsDefault>()
+            _ when BitConverter.IsLittleEndian => Use<HexConverterHwIntrinsicsDefaultLittleEndian>(),
+            _ => Use<HexConverterHwIntrinsicsDefaultBigEndian>(),
         };
     }
 
     public static int Use<T>() where T : IHexConverterImplementation
     {
         DispatchUnhexlify = &T.Unhexlify;
-        return T.InputBlockSize;
+        return T.SimdInputBlockSize;
     }
 }

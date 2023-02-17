@@ -67,6 +67,42 @@ public class HexConverterTests
     }
 
     [TestMethod]
+    public void UnhexlifyTest4()
+    {
+        const string expected = "1234";
+        byte[] actualBytes = HexConverter.Unhexlify(expected);
+        string actual = Convert.ToHexString(actualBytes);
+        Assert.AreEqual(expected, actual);
+    }
+
+    [TestMethod]
+    public void UnhexlifyTest4_2()
+    {
+        const string expected = "AABB";
+        byte[] actualBytes = HexConverter.Unhexlify(expected);
+        string actual = Convert.ToHexString(actualBytes);
+        Assert.AreEqual(expected, actual);
+    }
+
+    [TestMethod]
+    public void UnhexlifyTest2()
+    {
+        const string expected = "12";
+        byte[] actualBytes = HexConverter.Unhexlify(expected);
+        string actual = Convert.ToHexString(actualBytes);
+        Assert.AreEqual(expected, actual);
+    }
+
+    [TestMethod]
+    public void UnhexlifyTest2_2()
+    {
+        const string expected = "AA";
+        byte[] actualBytes = HexConverter.Unhexlify(expected);
+        string actual = Convert.ToHexString(actualBytes);
+        Assert.AreEqual(expected, actual);
+    }
+
+    [TestMethod]
     public void UnhexlifyTest()
     {
         for (int i = 0; i < 512; i++)

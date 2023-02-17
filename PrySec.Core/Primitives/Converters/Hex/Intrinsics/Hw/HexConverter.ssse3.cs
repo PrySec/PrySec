@@ -1,5 +1,4 @@
 ﻿using PrySec.Core.NativeTypes;
-using System;
 using System.Runtime.Intrinsics.X86;
 using System.Runtime.Intrinsics;
 
@@ -7,9 +6,9 @@ namespace PrySec.Core.Primitives.Converters.Hex.Intrinsics.Hw;
 
 internal unsafe class HexConverterHwIntrinsicsSsse3 : HexConverter128BitBase, IHexConverterImplementation
 {
-    public static int InputBlockSize => 16;
+    public static int SimdInputBlockSize => 16;
 
-    public static int OutputBlockSize => 8;
+    public static int SimdOutputBlockSize => 8;
 
     private static readonly Vector128<byte> _selectLowNibbles;
 
@@ -33,7 +32,7 @@ internal unsafe class HexConverterHwIntrinsicsSsse3 : HexConverter128BitBase, IH
 
     public static unsafe void Unhexlify(byte* input, Size_T inputSize, byte* output)
     {
-        for (; inputSize - InputBlockSize >= 0; inputSize -= InputBlockSize, input += InputBlockSize, output += OutputBlockSize)
+        for (; inputSize >= SimdInputBlockSize; inputSize -= SimdInputBlockSize, input += SimdInputBlockSize, output += SimdOutputBlockSize)
         {
             // (input & 0xF) + (input >> 6) | ((input >> 3) & 0x8);
             Vector128<uint> uint32Input = Sse2.LoadVector128((uint*)input);
@@ -74,7 +73,7 @@ internal unsafe class HexConverterHwIntrinsicsSsse3 : HexConverter128BitBase, IH
         }
         if (inputSize > 0)
         {
-            HexConverterHwIntrinsicsDefault.Unhexlify(input, inputSize, output);
+            HexConverterHwIntrinsicsDefault__EffectiveArch.Unhexlify(input, inputSize, output);
         }
     }
 }

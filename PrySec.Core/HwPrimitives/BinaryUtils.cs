@@ -204,6 +204,8 @@ public static unsafe partial class BinaryUtils
             ? BinaryPrimitives.ReverseEndianness(value)
             : value;
 
+    #region read LE
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static unsafe short ReadInt16LittleEndian(short* ptr) =>
         BinaryPrimitives.ReadInt16LittleEndian(new Span<byte>(ptr, sizeof(short)));
@@ -227,6 +229,10 @@ public static unsafe partial class BinaryUtils
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static unsafe ulong ReadUInt64LittleEndian(ulong* ptr) =>
         BinaryPrimitives.ReadUInt64LittleEndian(new Span<byte>(ptr, sizeof(ulong)));
+
+    #endregion read LE
+
+    #region read BE
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static unsafe short ReadInt16BigEndian(short* ptr) =>
@@ -252,6 +258,10 @@ public static unsafe partial class BinaryUtils
     public static unsafe ulong ReadUInt64BigEndian(ulong* ptr) =>
         BinaryPrimitives.ReadUInt64BigEndian(new Span<byte>(ptr, sizeof(ulong)));
 
+    #endregion read BE
+
+    #region write LE
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static unsafe void WriteInt16LittleEndian(void* ptr, short value) =>
         BinaryPrimitives.WriteInt16LittleEndian(new Span<byte>(ptr, sizeof(short)), value);
@@ -275,4 +285,34 @@ public static unsafe partial class BinaryUtils
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static unsafe void WriteUInt64LittleEndian(void* ptr, ulong value) =>
         BinaryPrimitives.WriteUInt64LittleEndian(new Span<byte>(ptr, sizeof(ulong)), value);
+
+    #endregion write LE
+
+    #region write LE
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe void WriteInt16BigEndian(void* ptr, short value) =>
+        BinaryPrimitives.WriteInt16BigEndian(new Span<byte>(ptr, sizeof(short)), value);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe void WriteInt32BigEndian(void* ptr, int value) =>
+        BinaryPrimitives.WriteInt32BigEndian(new Span<byte>(ptr, sizeof(int)), value);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe void WriteInt64BigEndian(void* ptr, long value) =>
+        BinaryPrimitives.WriteInt64BigEndian(new Span<byte>(ptr, sizeof(long)), value);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe void WriteUInt16BigEndian(void* ptr, ushort value) =>
+        BinaryPrimitives.WriteUInt16BigEndian(new Span<byte>(ptr, sizeof(ushort)), value);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe void WriteUInt32BigEndian(void* ptr, uint value) =>
+        BinaryPrimitives.WriteUInt32BigEndian(new Span<byte>(ptr, sizeof(uint)), value);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe void WriteUInt64BigEndian(void* ptr, ulong value) =>
+        BinaryPrimitives.WriteUInt64BigEndian(new Span<byte>(ptr, sizeof(ulong)), value);
+
+    #endregion write LE
 }

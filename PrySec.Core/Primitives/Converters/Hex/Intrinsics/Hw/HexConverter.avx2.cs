@@ -9,9 +9,9 @@ using static AvxPrimitives;
 
 internal unsafe class HexConverterHwIntrinsicsAvx2 : IHexConverterImplementation
 {
-    public static int InputBlockSize => 32;
+    public static int SimdInputBlockSize => 32;
 
-    public static int OutputBlockSize => 16;
+    public static int SimdOutputBlockSize => 16;
 
     private static readonly Vector256<byte> _selectLowNibbles;
 
@@ -49,7 +49,7 @@ internal unsafe class HexConverterHwIntrinsicsAvx2 : IHexConverterImplementation
 
     public static unsafe void Unhexlify(byte* input, Size_T inputSize, byte* output)
     {
-        for ( ; inputSize - InputBlockSize >= 0; inputSize -= InputBlockSize, input += InputBlockSize, output += OutputBlockSize)
+        for ( ; inputSize >= SimdInputBlockSize; inputSize -= SimdInputBlockSize, input += SimdInputBlockSize, output += SimdOutputBlockSize)
         {
             // (input & 0xF) + (input >> 6) | ((input >> 3) & 0x8);
             Vector256<uint> uint32Input = Avx.LoadVector256((uint*)input);
