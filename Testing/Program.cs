@@ -24,126 +24,38 @@ using System.Text;
 using System.Threading;
 using Testing;
 
-MemoryManager.UseImplementation<AllocationTracker<NativeMemoryManager>>();
-
-for (int i = 0; i < 512; i++)
-{
-    byte[] bytes = new byte[i];
-    Random random = new(42);
-    for (int j = 0; j < 64; j++)
-    {
-        random.NextBytes(bytes);
-        string expected = Convert.ToHexString(bytes);
-        byte[] actualBytes = HexConverter.Unhexlify(expected);
-        string actual = Convert.ToHexString(actualBytes);
-        if (!actual.Equals(expected))
-        {
-            throw new Exception("not equal");
-        }
-    }
-}
-Console.WriteLine("32768 Tests succeeded");
-Console.WriteLine(MemoryManager.GetAllocationSnapshot());
-
-return;
-
-//string sPerms = "r-xp";
-//byte[] byteData = Encoding.ASCII.GetBytes(sPerms);
-//uint permData = BinaryPrimitives.ReadUInt32BigEndian(new Span<byte>(byteData));
-
-//ProcfsPermissions perms = ProcfsPermissionParser.Parse(permData);
-//Console.WriteLine(perms);
-
-//return;
-
 unsafe
 {
     MemoryManager.UseImplementation<AllocationTracker<NativeMemoryManager>>();
 
-    using ProcfsMapsParser mapsParser = new(256);
-
-    ProcfsMemoryRegionInfo* pInfo = stackalloc ProcfsMemoryRegionInfo[1];
-
-    if (mapsParser.TryVirtualQueryEx("maps.txt", unchecked((nint)0x7ffea68fd000), pInfo))
-    {
-        Console.WriteLine("Found it:");
-        Console.WriteLine(pInfo->ToString());
-        if (pInfo->Path != null)
-        {
-            MemoryManager.Free(pInfo->Path);
-        }
-    }
-    else
-    {
-        Console.WriteLine("sad times");
-    }
-}
-
-Console.WriteLine(MemoryManager.GetAllocationSnapshot());
-
-return;
-
-Span<byte> buffer = stackalloc byte[100];
-using Stream st = File.OpenRead("test.txt");
-using AsciiStream a = new(16, st);
-while (true)
-{
-    int bytesWritten = a.ReadLine(buffer);
-    if (bytesWritten <= 0)
-    {
-        break;
-    }
-    Span<byte> line = buffer[..bytesWritten];
-    Console.WriteLine(Encoding.ASCII.GetString(line));
-}
-Console.WriteLine("done.");
-return;
-
-unsafe
-{
-    byte* b = stackalloc byte[8];
-    b[0] = 0;
-    b[1] = 1;
-    b[2] = 2;
-    b[3] = 3;
-    b[4] = 4;
-    b[5] = 5;
-    b[6] = 0;
-    b[7] = 7;
-    ulong u8 = BinaryUtils.ReadUInt64BigEndian((ulong*)b);//BinaryPrimitives.ReadUInt64BigEndian(new Span<byte>(&value, 8));
-    ulong zeroMask = BinaryUtils.MaskZeroByte(u8);
-    if (zeroMask != 0uL)
-    {
-        Console.WriteLine($"0x{u8:x16} contains one or more zero bytes!");
-        int index = 0;
-        BinaryUtils.BitScanReverse(&index, zeroMask);
-        Console.WriteLine($"Byte offset {7 - (index / 8)} is the first zero byte!");
-    }
-    else
-    {
-        System.Console.WriteLine($"0x{u8:x16} has no zero bytes!");
-    }
-}
-return;
-
-unsafe
-{
-    MemoryManager.UseImplementation<NativeMemoryManager>();
-
-    MProtectedMemory__Internal<byte> mem = MProtectedMemory__Internal<byte>.Allocate(128);
+    using MProtectedMemory__Internal<byte> mem = MProtectedMemory__Internal<byte>.Allocate(128);
     byte[] bytes = Encoding.ASCII.GetBytes("Oh gawd send help lol xD");
+
+    using ProcfsMapsParser procfsMapsParser = new(256);
+    ProcfsMemoryRegionInfo* info = stackalloc ProcfsMemoryRegionInfo[1];
+    Console.WriteLine("protected:");
+    if (procfsMapsParser.TryVirtualQuery(mem.NativeHandle, info, false))
+    {
+        Console.WriteLine(info->ToString());
+    }
+
     using (IMemoryAccess<byte> access = mem.GetAccess())
     {
         bytes.CopyTo(access.AsSpan());
+        Console.WriteLine("unprotected:");
+        if (procfsMapsParser.TryVirtualQuery(mem.NativeHandle, info, false))
+        {
+            Console.WriteLine(info->ToString());
+        }
     }
-    //while (true)
-    //{
-    //    Console.ReadLine();
-    //}
-    Console.WriteLine($"{mem.NativeHandle:x16}");
-    string s = File.ReadAllText("/proc/self/maps");
-    Console.WriteLine(s);
+    Console.WriteLine("protected:");
+    if (procfsMapsParser.TryVirtualQuery(mem.NativeHandle, info, false))
+    {
+        Console.WriteLine(info->ToString());
+    }
 }
+
+System.Console.WriteLine(MemoryManager.GetAllocationSnapshot());
 
 #if false
 
