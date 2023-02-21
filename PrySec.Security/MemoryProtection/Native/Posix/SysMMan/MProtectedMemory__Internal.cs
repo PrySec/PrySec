@@ -2,16 +2,23 @@
 using PrySec.Core.Memory;
 using PrySec.Core.Memory.MemoryManagement;
 using PrySec.Core.Native;
+using PrySec.Core.Native.UnixLike.Procfs;
 using PrySec.Core.NativeTypes;
+using PrySec.Security.MemoryProtection.Portable.ProtectedMemory;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Threading;
 
 namespace PrySec.Security.MemoryProtection.Native.Posix.SysMMan;
 
-internal unsafe class MProtectedMemory__Internal<T> : IProtectedMemoryFactory<MProtectedMemory__Internal<T>, T>, IProtectedMemoryProxy<T> where T : unmanaged
+internal unsafe class MProtectedMemory__Internal<T> : IProtectedMemoryFactory<MProtectedMemory__Internal<T>, T>, IProtectedMemoryProxy<T>, IMonitoredMemoryRegion where T : unmanaged
 {
     private bool disposedValue = false;
+
+    private static readonly ThreadLocal<ProcfsMapsParser> _procfs = new(() => new ProcfsMapsParser(256));
+
+    private readonly ISysMManAccessValidator _validator;
 
     private protected MProtectedMemory__Internal(Size_T count)
     {
@@ -19,6 +26,9 @@ internal unsafe class MProtectedMemory__Internal<T> : IProtectedMemoryFactory<MP
         {
             throw new ArgumentOutOfRangeException(nameof(count), "count must be a non-negative integer.");
         }
+        _validator = OS.IsPlatform(OSPlatform.OSX)
+            ? default(MacOSAccessValidator)
+            : default(ProcfsAccessValidator);
         if (count != 0)
         {
             Count = count;
@@ -29,7 +39,7 @@ internal unsafe class MProtectedMemory__Internal<T> : IProtectedMemoryFactory<MP
             NativeHandle = new nint(BasePointer);
             SysMManNativeShim.MLock(NativeHandle, NativeByteSize);
             this.As<IProtectedResource>().Protect();
-            //PageProtectionStateWatchdog.Monitor(this);
+            PageProtectionStateWatchdog.Monitor(this);
         }
     }
 
@@ -51,9 +61,13 @@ internal unsafe class MProtectedMemory__Internal<T> : IProtectedMemoryFactory<MP
 
     private volatile uint _isProtected = (uint)ProtectionState.Unprotected;
 
+    private volatile uint _accessCount = 0;
+
     internal ProtectionState State => (ProtectionState)_isProtected;
 
     ProtectionState IProtectedResource.State => State;
+
+    nint IMonitoredMemoryRegion.BaseHandle => BaseHandle;
 
     public static MProtectedMemory__Internal<T> Allocate(Size_T count) => new(count);
 
@@ -82,7 +96,7 @@ internal unsafe class MProtectedMemory__Internal<T> : IProtectedMemoryFactory<MP
                 // TODO: dispose managed state (managed objects)
             }
 
-            //PageProtectionStateWatchdog.Disregard(this);
+            PageProtectionStateWatchdog.Disregard(this);
             this.As<IProtectedMemoryProxy>().Unprotect();
             MemoryManager.ZeroMemory(BasePointer, ByteSize);
             SysMManNativeShim.MUnlock(NativeHandle, NativeByteSize);
@@ -135,7 +149,59 @@ internal unsafe class MProtectedMemory__Internal<T> : IProtectedMemoryFactory<MP
     {
         if (!disposedValue && Interlocked.CompareExchange(ref _isProtected, (uint)ProtectionState.Unprotected, (uint)ProtectionState.Protected) == (uint)ProtectionState.Protected)
         {
+            while (_accessCount > 0)
+            {
+                Thread.SpinWait(1);
+            }
             SysMManNativeShim.MProtect(BaseHandle, NativeByteSize, MemoryProtection.PROT_READ | MemoryProtection.PROT_WRITE);
         }
     }
+
+    bool IMonitoredMemoryRegion.OnBaseHandleWatchdogValidation(nint handle, void* context, [NotNullWhen(false)] out string? error)
+    {
+        if (_isProtected == (uint)ProtectionState.Protected)
+        {
+            using ProtectionStateWatchdogAccess access = new(this);
+
+            if (_isProtected == (uint)ProtectionState.Protected && !_validator.ValidateNoAccess(handle, context))
+            {
+                error = "PAGE_NOACCESS was lifted!";
+                return false;
+            }
+        }
+        error = null;
+        return true;
+    }
+
+    void IMonitoredMemoryRegion.OnWatchdogFailure() => Dispose();
+
+    private readonly struct ProtectionStateWatchdogAccess : IDisposable
+    {
+        private readonly MProtectedMemory__Internal<T> _parent;
+
+        public ProtectionStateWatchdogAccess(MProtectedMemory__Internal<T> parent)
+        {
+            _parent = parent;
+            Interlocked.Increment(ref _parent._accessCount);
+        }
+
+        public void Dispose() => Interlocked.Decrement(ref _parent._accessCount);
+    }
+}
+
+file readonly struct ProcfsAccessValidator : ISysMManAccessValidator
+{
+    private static readonly ThreadLocal<ProcfsMapsParser> _procfs = new(() => new ProcfsMapsParser(256));
+
+    public unsafe bool ValidateNoAccess(nint handle, void* context)
+    {
+        ProcfsMemoryRegionInfo* info = (ProcfsMemoryRegionInfo*)context;
+        return _procfs.Value?.TryVirtualQuery(handle, info, false) is true 
+            && info->Permissions == ProcfsPermissions.NoAccess;
+    }
+}
+
+file readonly struct MacOSAccessValidator : ISysMManAccessValidator
+{
+    public unsafe bool ValidateNoAccess(nint handle, void* context) => true;
 }

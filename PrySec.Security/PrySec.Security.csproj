@@ -13,7 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include=".properies\AssemblyInfo.cs" />
+    <Compile Include=".properties\AssemblyInfo.cs" />
   </ItemGroup>
 
     <ItemGroup>

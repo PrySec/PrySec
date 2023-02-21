@@ -1,4 +1,6 @@
 ﻿using PrySec.Core.Memory.MemoryManagement;
+using PrySec.Core.Native;
+using PrySec.Core.Native.UnixLike.Procfs;
 using PrySec.Security.MemoryProtection.Native.Ntos.MemoryApi;
 using System;
 using System.Collections.Generic;
@@ -13,7 +15,7 @@ namespace PrySec.Security.MemoryProtection.Portable.ProtectedMemory;
 
 internal static unsafe class PageProtectionStateWatchdog
 {
-    private static readonly List<IGuardedMemoryRegion> _guardedRegions = new();
+    private static readonly List<IMonitoredMemoryRegion> _guardedRegions = new();
     private static readonly WatchdogTaskList _watchdogTasks = new();
 
     internal const uint FALSE = 0;
@@ -24,12 +26,17 @@ internal static unsafe class PageProtectionStateWatchdog
 
     public static void Monitor(IGuardedMemoryRegion region)
     {
+        _watchdogTasks.Add(region.FrontGuardHandle, region.OnFrontGuardHandleWatchdogValidation);
+        _watchdogTasks.Add(region.RearGuardHandle, region.OnRearGuardHandleWatchdogValidation);
+        Monitor((IMonitoredMemoryRegion)region);
+    }
+
+    public static void Monitor(IMonitoredMemoryRegion region)
+    {
         lock (_guardedRegions)
         {
             _guardedRegions.Add(region);
         }
-        _watchdogTasks.Add(region.FrontGuardHandle, region.OnFrontGuardHandleWatchdogValidation);
-        _watchdogTasks.Add(region.RearGuardHandle, region.OnRearGuardHandleWatchdogValidation);
         _watchdogTasks.Add(region.BaseHandle, region.OnBaseHandleWatchdogValidation);
         if (Interlocked.CompareExchange(ref _isRunning, TRUE, FALSE) is FALSE)
         {
@@ -52,6 +59,15 @@ internal static unsafe class PageProtectionStateWatchdog
         }
         _watchdogTasks.Remove(region.FrontGuardHandle);
         _watchdogTasks.Remove(region.RearGuardHandle);
+        Disregard((IMonitoredMemoryRegion)region);
+    }
+
+    public static void Disregard(IMonitoredMemoryRegion region)
+    {
+        if (_failed == TRUE)
+        {
+            return;
+        }
         _watchdogTasks.Remove(region.BaseHandle);
         lock (_guardedRegions)
         {
@@ -141,9 +157,12 @@ internal static unsafe class PageProtectionStateWatchdog
         }
     }
 
-    private static void* AllocateContextStructure() => RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+    private static void* AllocateContextStructure() => 
+        RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
         ? MemoryManager.Malloc(Marshal.SizeOf<MEMORY_BASIC_INFORMATION>())
-        : throw new NotImplementedException("TODO");
+        : OS.IsPlatform(OSPlatform.OSX)
+            ? null
+            : MemoryManager.Malloc(sizeof(ProcfsMemoryRegionInfo)); 
 
     private static void WatchdogRaiseViolation(WatchdogExitStatus exitStatus, string error)
     {
@@ -155,7 +174,7 @@ internal static unsafe class PageProtectionStateWatchdog
         Debug.WriteLine(message);
         lock (_guardedRegions)
         {
-            foreach (IGuardedMemoryRegion region in _guardedRegions)
+            foreach (IMonitoredMemoryRegion region in _guardedRegions)
             {
                 region.OnWatchdogFailure();
             }

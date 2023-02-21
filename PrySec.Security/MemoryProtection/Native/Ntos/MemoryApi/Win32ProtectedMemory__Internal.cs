@@ -1,7 +1,6 @@
 ﻿using PrySec.Core.Extensions;
 using PrySec.Core.Memory;
 using PrySec.Core.Memory.MemoryManagement;
-using PrySec.Core.Memory.MemoryManagement.Implementations.AllocationTracking;
 using PrySec.Core.Native;
 using PrySec.Core.NativeTypes;
 using PrySec.Security.MemoryProtection.Portable.ProtectedMemory;
@@ -65,7 +64,7 @@ internal unsafe class Win32ProtectedMemory__Internal<T> : IProtectedMemoryFactor
 
     nint IGuardedMemoryRegion.RearGuardHandle => RearGuardHandle;
 
-    nint IGuardedMemoryRegion.BaseHandle => BaseHandle;
+    nint IMonitoredMemoryRegion.BaseHandle => BaseHandle;
 
     public int Count { get; }
 
@@ -180,7 +179,7 @@ internal unsafe class Win32ProtectedMemory__Internal<T> : IProtectedMemoryFactor
     bool IGuardedMemoryRegion.OnRearGuardHandleWatchdogValidation(nint handle, void* context, out string error) =>
         IsGuardPage(handle, (MEMORY_BASIC_INFORMATION*)context, out error);
 
-    bool IGuardedMemoryRegion.OnBaseHandleWatchdogValidation(nint handle, void* context, [NotNullWhen(false)] out string? error)
+    bool IMonitoredMemoryRegion.OnBaseHandleWatchdogValidation(nint handle, void* context, [NotNullWhen(false)] out string? error)
     {
         if (_isProtected == (uint)ProtectionState.Protected)
         {
@@ -195,7 +194,7 @@ internal unsafe class Win32ProtectedMemory__Internal<T> : IProtectedMemoryFactor
         return true;
     }
 
-    void IGuardedMemoryRegion.OnWatchdogFailure() => Dispose();
+    void IMonitoredMemoryRegion.OnWatchdogFailure() => Dispose();
 
     private readonly struct ProtectionStateWatchdogAccess : IDisposable
     {
