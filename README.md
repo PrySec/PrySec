@@ -13,7 +13,7 @@ Stop people from prying around in your process's memory!
 
 ### Defensive
 
-- [ ] Cross platform memory protection providing low and high level access to protected memory using [DPAPI](https://en.wikipedia.org/wiki/Data_Protection_API) on Windows NT and platform idependent memory protection on UNIX systems using a custom BLAKE3-based stream cipher to keep your passwords and sensitive data safe from memory dumps and snooping.
+- [x] Cross platform memory protection providing low and high level access to protected memory using [DPAPI](https://en.wikipedia.org/wiki/Data_Protection_API) on Windows NT and platform idependent memory protection on UNIX systems using a custom BLAKE3-based stream cipher to keep your passwords and sensitive data safe from memory dumps and snooping.
 - [ ] Simple managed and unmanaged debugger detection and mitigation, thread hiding, etc ...
 - [ ] Resource protection - protect your application resources in compressed and encrypted key-value binary blobs.
   
