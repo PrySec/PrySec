@@ -1,9 +1,12 @@
-﻿using PrySec.Core;
-using PrySec.Core.Memory;
+﻿using PrySec.Core.Memory;
+using PrySec.Core.Memory.MemoryManagement;
 using PrySec.Security.Cryptography.Crng;
 using PrySec.Security.Cryptography.Encryption.Blake3XofOtp;
-using PrySec.Security.Cryptography.Encryption.Blake3XofOtp.Implementation;
+using PrySec.Security.MemoryProtection.Native.Ntos.MemoryApi;
+using PrySec.Security.MemoryProtection.Portable.ProtectedMemory;
+using PrySec.Security.MemoryProtection.Portable.XofOtp.Intrinsics;
 using System;
+using System.Diagnostics;
 
 namespace PrySec.Security.MemoryProtection.Portable.XofOtp;
 
@@ -11,15 +14,18 @@ internal static unsafe class Blake3XofOtpEncryptionService
 {
     private static readonly Blake3XofOtpScp _otpService = new($"https://github.com/frederik-hoeft/PrySec 2023-01-25 22:10:07 PrySec BLAKE3 XOF OTP SCP");
 
-    private static readonly IUnmanaged _keyMemory;
+    private static readonly ProtectedMemory<byte> _principalKeyMemory;
+
+    public const int KEY_SIZE = 64;
 
     static Blake3XofOtpEncryptionService()
     {
-        // TODO: use protected memory + fluent/dynamic reference!
-        // TODO: use constant for 64 (IV/key size)
-        _keyMemory = UnmanagedMemory<byte>.Allocate(64);
-        using IMemoryAccess<byte> access = _keyMemory.GetAccess<byte>();
+        // TODO: fluent/dynamic reference!
+        _principalKeyMemory = ProtectedMemory<byte>.Allocate(KEY_SIZE + KEY_SIZE);
+        using IMemoryAccess<byte> access = _principalKeyMemory.GetAccess<byte>();
         SecureRandom.Fill(access.Pointer, access.ByteSize);
+        AlignedXorService__EffectiveArch.Xor2dAligned(access.Pointer, access.Pointer + KEY_SIZE, KEY_SIZE);
+        Debug.WriteLine($"_principalKeyMemory base: 0x{(nint)_principalKeyMemory.BasePointer:x16}");
     }
 
     public static void Protect<T>(Blake3XofOtpEncryptedMemory<T> memory) where T : unmanaged
@@ -42,14 +48,14 @@ internal static unsafe class Blake3XofOtpEncryptionService
 
     private static void ApplyOtp<T>(Blake3XofOtpEncryptedMemory<T> memory) where T : unmanaged
     {
-        // TODO: use actually protected memory + maybe use stack-based buffer?
-        DeterministicMemory<byte> keyBuffer = DeterministicMemory<byte>.CreateFrom(new Span<byte>(memory.NativeHandle.ToPointer(), Blake3XofOtpEncryptedMemory<T>.IVSize));
-        using (IMemoryAccess<byte> targetAccess = keyBuffer.GetAccess<byte>())
-        using (IMemoryAccess<byte> sourceAccess = _keyMemory.GetAccess<byte>())
+        // TODO: use actually protected memory
+        byte* pBlakeXofKey = stackalloc byte[KEY_SIZE];
+        MemoryManager.Memcpy(pBlakeXofKey, memory.NativeHandle.ToPointer(), KEY_SIZE);
+        using DeterministicMemory<byte> blakeXofKey = DeterministicMemory.ProtectOnly(pBlakeXofKey, KEY_SIZE);
+        using (IMemoryAccess<byte> principalKeyAccess = _principalKeyMemory.GetAccess())
         {
-            Blake3XofOtpBlockFinalizer__EffectiveArch.BlockFinalizerFunction(targetAccess.Pointer, sourceAccess.Pointer, targetAccess.ByteSize);
+            AlignedXorService__EffectiveArch.Xor3dPartiallyAligned(principalKeyAccess.Pointer, principalKeyAccess.Pointer + KEY_SIZE, pBlakeXofKey, KEY_SIZE);
         }
-        _otpService.ComputeInline(ref keyBuffer, (byte*)memory.BasePointer, memory.ByteSize);
-        keyBuffer.Dispose();
+        _otpService.ComputeInline__Internal(pBlakeXofKey, KEY_SIZE, (byte*)memory.BasePointer, memory.ByteSize);
     }
 }

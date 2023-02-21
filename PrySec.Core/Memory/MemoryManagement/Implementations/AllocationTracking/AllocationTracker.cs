@@ -16,6 +16,8 @@ public readonly unsafe struct AllocationTracker<TMemoryManager> : IMemoryManager
     {
     }
 
+    public bool SupportsAllocationTracking => true;
+
     public static void* Calloc(Size_T count, Size_T size)
     {
         void* p = TMemoryManager.Calloc(count, size);
@@ -75,4 +77,12 @@ public readonly unsafe struct AllocationTracker<TMemoryManager> : IMemoryManager
         _allocations.TryAdd((nuint)p, allocation);
         return p;
     }
+
+    public void RegisterExternalAllocation(void* handle, nuint size)
+    {
+        Allocation allocation = new(new IntPtr(handle), size, new StackTrace(1));
+        _allocations.TryAdd((nuint)handle, allocation);
+    }
+
+    public void UnregisterExternalAllocation(void* handle) => _allocations.TryRemove(new UIntPtr(handle), out _);
 }

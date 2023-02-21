@@ -1,22 +1,22 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-	<TargetFramework>net7.0</TargetFramework>
-	<LangVersion>latest</LangVersion>
-	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <TargetFramework>net7.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="MemoryProtection\Native\Posix\**" />
-    <EmbeddedResource Remove="MemoryProtection\Native\Posix\**" />
-    <None Remove="MemoryProtection\Native\Posix\**" />
-  </ItemGroup>
-
-  <ItemGroup>
+    <None Remove="MemoryProtection\Native\Ntos\MemoryApi\Win32GuardPageWatchdog.cs~RF8e16b1.TMP" />
     <None Remove="MemoryProtection\Portable\Sentinels\DeterministicSentinelFactory.cs~RFdf5a48.TMP" />
   </ItemGroup>
 
-	<ItemGroup>
+  <ItemGroup>
+    <Compile Include=".properties\AssemblyInfo.cs" />
+  </ItemGroup>
+
+    <ItemGroup>
     <ProjectReference Include="..\PrySec.Core\PrySec.Core.csproj" />
   </ItemGroup>
 

@@ -3,10 +3,14 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net7.0</TargetFramework>
-	  <LangVersion>latest</LangVersion>
-	  <Nullable>enable</Nullable>
+      <LangVersion>latest</LangVersion>
+      <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Program.cs~RF12ac1cf.TMP" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" Version="0.13.4" />
@@ -16,6 +20,15 @@
   <ItemGroup>
     <ProjectReference Include="..\PrySec.Core\PrySec.Core.csproj" />
     <ProjectReference Include="..\PrySec.Security\PrySec.Security.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="maps.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="test.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

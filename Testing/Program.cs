@@ -1,17 +1,65 @@
-﻿//#define custom
-
-using BenchmarkDotNet.Running;
+﻿using BenchmarkDotNet.Running;
+using PrySec.Core.HwPrimitives;
+using PrySec.Core.IO;
+using PrySec.Core.Memory;
 using PrySec.Core.Memory.MemoryManagement;
 using PrySec.Core.Memory.MemoryManagement.Implementations;
+using PrySec.Core.Memory.MemoryManagement.Implementations.AllocationTracking;
+using PrySec.Core.Native.UnixLike.Procfs;
+using PrySec.Core.Primitives.Converters;
 using PrySec.Security.Cryptography.Hashing.Blake2;
+using PrySec.Security.MemoryProtection.Native.Ntos.DPApi;
+using PrySec.Security.MemoryProtection.Native.Ntos.MemoryApi;
+using PrySec.Security.MemoryProtection.Native.Posix.SysMMan;
 using PrySec.Security.MemoryProtection.Portable;
+using PrySec.Security.MemoryProtection.Portable.XofOtp;
 using System;
+using System.Buffers.Binary;
 using System.Diagnostics;
+using System.IO;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
 using System.Text;
+using System.Threading;
 using Testing;
 
-MemoryManager.UseImplementation<NativeMemoryManager>();
+unsafe
+{
+    MemoryManager.UseImplementation<AllocationTracker<NativeMemoryManager>>();
+
+    using MProtectedMemory__Internal<byte> mem = MProtectedMemory__Internal<byte>.Allocate(128);
+    byte[] bytes = Encoding.ASCII.GetBytes("Oh gawd send help lol xD");
+
+    using ProcfsMapsParser procfsMapsParser = new(256);
+    ProcfsMemoryRegionInfo* info = stackalloc ProcfsMemoryRegionInfo[1];
+    Console.WriteLine("protected:");
+    if (procfsMapsParser.TryVirtualQuery(mem.NativeHandle, info, false))
+    {
+        Console.WriteLine(info->ToString());
+    }
+
+    using (IMemoryAccess<byte> access = mem.GetAccess())
+    {
+        bytes.CopyTo(access.AsSpan());
+        Console.WriteLine("unprotected:");
+        if (procfsMapsParser.TryVirtualQuery(mem.NativeHandle, info, false))
+        {
+            Console.WriteLine(info->ToString());
+        }
+    }
+    Console.WriteLine("protected:");
+    if (procfsMapsParser.TryVirtualQuery(mem.NativeHandle, info, false))
+    {
+        Console.WriteLine(info->ToString());
+    }
+}
+
+System.Console.WriteLine(MemoryManager.GetAllocationSnapshot());
+
+#if false
+
+return;
 
 const uint WARMUP = 10_000;
 const uint ITERATIONS = 500_000;
@@ -48,7 +96,7 @@ unsafe
         Console.WriteLine();
     }
 }
-
+#endif
 /*
  * 
  * 

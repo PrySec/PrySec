@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace PrySec.Security.MemoryProtection.Native.Ntos;
+namespace PrySec.Security.MemoryProtection.Native.Ntos.DPApi;
 
 static partial class DPApiNativeShim
 {

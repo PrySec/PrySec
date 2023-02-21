@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 
 namespace PrySec.Core.NativeTypes;
 
+[DebuggerDisplay("value = {(ulong)value}")]
 [StructLayout(LayoutKind.Explicit)]
 public unsafe readonly struct Size_T
 {
@@ -21,17 +22,25 @@ public unsafe readonly struct Size_T
 
     public static implicit operator nuint(Size_T size) => size.value;
 
+    public static implicit operator Index(Size_T size) => new((int)size.value);
+
     public static implicit operator Size_T(int i) => new((nuint)i);
 
     public static implicit operator Size_T(uint i) => new(i);
 
     public static implicit operator Size_T(nuint i) => new(i);
 
-    public static explicit operator IntPtr(Size_T size) => new(size);
+    public static explicit operator Size_T(ulong i) => new((nuint)i);
+
+    public static explicit operator nint(Size_T size) => (nint)size.value;
     
     public static explicit operator byte(Size_T size) => (byte)size.value;
 
     public static Size_T operator *(Size_T a, Size_T b) => new(a.value * b.value);
+
+    public static Size_T operator +(Size_T a, Size_T b) => new(a.value + b.value);
+
+    public static Size_T operator -(Size_T a, Size_T b) => new(a.value - b.value);
 
     public static bool operator <(Size_T a, Size_T b) => a.value < b.value;
 
@@ -48,4 +57,6 @@ public unsafe readonly struct Size_T
     public static readonly int ByteSize = sizeof(nint);
 
     public static readonly int BitSize = sizeof(nint) << 3;
+
+    public override string ToString() => value.ToString();
 }

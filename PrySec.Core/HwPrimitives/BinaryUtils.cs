@@ -1,15 +1,16 @@
 ﻿using PrySec.Core.NativeTypes;
 using System;
 using System.Buffers.Binary;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 
 namespace PrySec.Core.HwPrimitives;
 
+[DebuggerStepThrough]
 public static unsafe partial class BinaryUtils
 {
-    // TODO: consider using properties for direct inlining?
     private static readonly delegate*<int*, uint, int> _bitScanReverseImpl;
     private static readonly delegate*<int*, ulong, int> _bitScanReverse64Impl;
     private static readonly delegate*<uint, int> _populationCountImpl;
@@ -105,7 +106,7 @@ public static unsafe partial class BinaryUtils
     /// log2(value)
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public static int Ld(Size32_T value)
+    public static int Log2(Size32_T value)
     {
         int v = value;
 
@@ -128,11 +129,68 @@ public static unsafe partial class BinaryUtils
     /// Checks if <paramref name="value"/> is a power of 2.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public static bool Ip2(Size32_T value)
+    public static bool IsPowerOf2(Size32_T value)
     {
         uint v = value;
         return (v & v - 1) == 0;
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool HasZeroByte(ulong v) =>
+        MaskZeroByte(v) != 0uL;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool HasZeroByte(uint v) =>
+        MaskZeroByte(v) != 0u;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool HasZeroByte(ushort v) =>
+        MaskZeroByte(v) != 0;
+
+    private const ulong ZERO_MASK_64_1 = 0x01010101_01010101uL;
+
+    private const ulong ZERO_MASK_64_2 = 0x80808080_80808080uL;
+
+    private const uint ZERO_MASK_32_1 = 0x01010101u;
+
+    private const uint ZERO_MASK_32_2 = 0x80808080u;
+
+    private const ushort ZERO_MASK_16_1 = 0x0101;
+
+    private const ushort ZERO_MASK_16_2 = 0x8080;
+
+    /// <summary>
+    /// returns a value where non-zero bytes in <paramref name="v"/> will be all 0 and zero bytes in <paramref name="v"/> will have a leading 1 bit, followed by 7 0s.
+    /// </summary>
+    /// <remarks>
+    /// 32-bit example: <c>MaskZeroByte(0x80_A2_00_2F) => 0b00000000_00000000_10000000_00000000</c> 
+    /// </remarks>
+    /// <param name="v">The value to calculate the zero-mask for</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ulong MaskZeroByte(ulong v) =>
+        (v - ZERO_MASK_64_1) & ~v & ZERO_MASK_64_2;
+
+    /// <summary>
+    /// returns a value where non-zero bytes in <paramref name="v"/> will be all 0 and zero bytes in <paramref name="v"/> will have a leading 1 bit, followed by 7 0s.
+    /// </summary>
+    /// <remarks>
+    /// 32-bit example: <c>MaskZeroByte(0x80_A2_00_2F) => 0b00000000_00000000_10000000_00000000</c> 
+    /// </remarks>
+    /// <param name="v">The value to calculate the zero-mask for</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static uint MaskZeroByte(uint v) =>
+        (v - ZERO_MASK_32_1) & ~v & ZERO_MASK_32_2;
+
+    /// <summary>
+    /// returns a value where non-zero bytes in <paramref name="v"/> will be all 0 and zero bytes in <paramref name="v"/> will have a leading 1 bit, followed by 7 0s.
+    /// </summary>
+    /// <remarks>
+    /// 32-bit example: <c>MaskZeroByte(0x80_A2_00_2F) => 0b00000000_00000000_10000000_00000000</c> 
+    /// </remarks>
+    /// <param name="v">The value to calculate the zero-mask for</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ushort MaskZeroByte(ushort v) =>
+        (ushort)((v - ZERO_MASK_16_1) & ~v & ZERO_MASK_16_2);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static unsafe void WriteUInt32BigEndian(uint* target, uint value) =>
@@ -145,6 +203,18 @@ public static unsafe partial class BinaryUtils
         *target = BitConverter.IsLittleEndian
             ? BinaryPrimitives.ReverseEndianness(value)
             : value;
+
+    public static unsafe ulong Strtoull(byte* s, Size_T length)
+    {
+        ulong counter = 0;
+        for (byte b = *s; length > 0; length--, b = *++s)
+        {
+            counter += (ulong)(b & 0x0f) * (ulong)Math.Pow(10, (int)length - 1);
+        }
+        return counter;
+    }
+
+    #region read LE
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static unsafe short ReadInt16LittleEndian(short* ptr) =>
@@ -170,6 +240,38 @@ public static unsafe partial class BinaryUtils
     public static unsafe ulong ReadUInt64LittleEndian(ulong* ptr) =>
         BinaryPrimitives.ReadUInt64LittleEndian(new Span<byte>(ptr, sizeof(ulong)));
 
+    #endregion read LE
+
+    #region read BE
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe short ReadInt16BigEndian(short* ptr) =>
+        BinaryPrimitives.ReadInt16BigEndian(new Span<byte>(ptr, sizeof(short)));
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe int ReadInt32BigEndian(int* ptr) =>
+        BinaryPrimitives.ReadInt32BigEndian(new Span<byte>(ptr, sizeof(int)));
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe long ReadInt64BigEndian(long* ptr) =>
+        BinaryPrimitives.ReadInt64BigEndian(new Span<byte>(ptr, sizeof(long)));
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe ushort ReadUInt16BigEndian(ushort* ptr) =>
+        BinaryPrimitives.ReadUInt16BigEndian(new Span<byte>(ptr, sizeof(ushort)));
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe uint ReadUInt32BigEndian(uint* ptr) =>
+        BinaryPrimitives.ReadUInt32BigEndian(new Span<byte>(ptr, sizeof(uint)));
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe ulong ReadUInt64BigEndian(ulong* ptr) =>
+        BinaryPrimitives.ReadUInt64BigEndian(new Span<byte>(ptr, sizeof(ulong)));
+
+    #endregion read BE
+
+    #region write LE
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static unsafe void WriteInt16LittleEndian(void* ptr, short value) =>
         BinaryPrimitives.WriteInt16LittleEndian(new Span<byte>(ptr, sizeof(short)), value);
@@ -193,4 +295,34 @@ public static unsafe partial class BinaryUtils
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static unsafe void WriteUInt64LittleEndian(void* ptr, ulong value) =>
         BinaryPrimitives.WriteUInt64LittleEndian(new Span<byte>(ptr, sizeof(ulong)), value);
+
+    #endregion write LE
+
+    #region write LE
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe void WriteInt16BigEndian(void* ptr, short value) =>
+        BinaryPrimitives.WriteInt16BigEndian(new Span<byte>(ptr, sizeof(short)), value);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe void WriteInt32BigEndian(void* ptr, int value) =>
+        BinaryPrimitives.WriteInt32BigEndian(new Span<byte>(ptr, sizeof(int)), value);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe void WriteInt64BigEndian(void* ptr, long value) =>
+        BinaryPrimitives.WriteInt64BigEndian(new Span<byte>(ptr, sizeof(long)), value);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe void WriteUInt16BigEndian(void* ptr, ushort value) =>
+        BinaryPrimitives.WriteUInt16BigEndian(new Span<byte>(ptr, sizeof(ushort)), value);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe void WriteUInt32BigEndian(void* ptr, uint value) =>
+        BinaryPrimitives.WriteUInt32BigEndian(new Span<byte>(ptr, sizeof(uint)), value);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe void WriteUInt64BigEndian(void* ptr, ulong value) =>
+        BinaryPrimitives.WriteUInt64BigEndian(new Span<byte>(ptr, sizeof(ulong)), value);
+
+    #endregion write LE
 }

@@ -7,6 +7,8 @@ namespace PrySec.Core.Memory.MemoryManagement.Implementations;
 
 public readonly struct MarshalMemoryManager : IMemoryManager
 {
+    public bool SupportsAllocationTracking => false;
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static unsafe void* Calloc(Size_T count, Size_T size)
     {

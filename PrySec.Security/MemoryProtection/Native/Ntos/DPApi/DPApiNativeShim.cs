@@ -2,7 +2,7 @@
 using PrySec.Core.NativeTypes;
 using System.ComponentModel;
 
-namespace PrySec.Security.MemoryProtection.Native.Ntos;
+namespace PrySec.Security.MemoryProtection.Native.Ntos.DPApi;
 
 internal static partial class DPApiNativeShim
 {

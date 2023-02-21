@@ -50,7 +50,7 @@ public unsafe interface IUnmanaged<TUnmanaged, TData> : IUnmanaged<TData>
         where TOtherData : unmanaged
     {
         int sizeOfOther = sizeof(TOtherData);
-        if (BinaryUtils.Ip2(sizeOfOther) && BinaryUtils.Ip2(sizeof(TData)))
+        if (BinaryUtils.IsPowerOf2(sizeOfOther) && BinaryUtils.IsPowerOf2(sizeof(TData)))
         {
             int otherCount = ByteSize / sizeOfOther;
             TOtherUnmanaged other = TOtherUnmanaged.Allocate(otherCount);

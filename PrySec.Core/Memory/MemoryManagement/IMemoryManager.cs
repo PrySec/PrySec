@@ -15,4 +15,6 @@ public unsafe interface IMemoryManager
     T* Calloc<T>(Size_T count) where T : unmanaged;
 
     T* Realloc<T>(T* previous, Size_T newCount) where T : unmanaged;
+
+    bool SupportsAllocationTracking { get; }
 }

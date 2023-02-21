@@ -6,6 +6,8 @@ namespace PrySec.Core.Memory.MemoryManagement.Implementations;
 
 public readonly unsafe struct NativeMemoryManager : IMemoryManager
 {
+    public bool SupportsAllocationTracking => false;
+
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static unsafe void* Calloc(Size_T count, Size_T size) => 
         NativeMemory.AllocZeroed(count * size);

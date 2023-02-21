@@ -4,7 +4,7 @@ using PrySec.Core.Memory.MemoryManagement;
 using PrySec.Core.NativeTypes;
 using System;
 
-namespace PrySec.Security.MemoryProtection.Native.Ntos;
+namespace PrySec.Security.MemoryProtection.Native.Ntos.DPApi;
 
 public unsafe class DPApiEncryptedMemory<T> : IProtectedMemoryFactory<DPApiEncryptedMemory<T>, T>, IProtectedMemoryProxy
     where T : unmanaged
@@ -67,8 +67,8 @@ public unsafe class DPApiEncryptedMemory<T> : IProtectedMemoryFactory<DPApiEncry
 
     ProtectionState IProtectedResource.State => State;
 
-    public static DPApiEncryptedMemory<T> Allocate(Size_T count) => count == 0 
-        ? new DPApiEncryptedMemoryZeroAlloc<T>() 
+    public static DPApiEncryptedMemory<T> Allocate(Size_T count) => count == 0
+        ? new DPApiEncryptedMemoryZeroAlloc<T>()
         : (DPApiEncryptedMemory<T>)(new(count));
 
     public static DPApiEncryptedMemory<T> CreateFrom(ReadOnlySpan<T> data)
@@ -107,7 +107,7 @@ public unsafe class DPApiEncryptedMemory<T> : IProtectedMemoryFactory<DPApiEncry
 
     public IMemoryAccess<T> GetAccess() => new ProtectedMemoryAccess<DPApiEncryptedMemory<T>, T>(this);
 
-    public IMemoryAccess<TAs> GetAccess<TAs>() where TAs : unmanaged => 
+    public IMemoryAccess<TAs> GetAccess<TAs>() where TAs : unmanaged =>
         new ProtectedMemoryAccess<DPApiEncryptedMemory<T>, TAs>(this);
 
     private protected virtual void Protect()

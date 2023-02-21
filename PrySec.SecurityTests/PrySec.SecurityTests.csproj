@@ -2,13 +2,16 @@
 
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
-	  <LangVersion>latest</LangVersion>
+      <LangVersion>latest</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
     <PropertyGroup Condition=" '$(OS)' == 'Windows_NT' ">
-	    <DefineConstants>WIN32</DefineConstants>
+        <DefineConstants>WIN32</DefineConstants>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(Platform)' == 'x64' Or '$(Platform)' == 'ARM64'">
+        <DefineConstants>IS_64_BIT</DefineConstants>
     </PropertyGroup>
 
   <ItemGroup>

@@ -76,4 +76,26 @@ public static unsafe partial class MemoryManager
         : null;
 
     public static int MaxStackAllocSize => 4096;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryRegisterExternalAllocation(void* ptr, Size_T size)
+    {
+        if (Allocator.SupportsAllocationTracking && Allocator is IAllocationTracker tracker)
+        {
+            tracker.RegisterExternalAllocation(ptr, size);
+            return true;
+        }
+        return false;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryUnregisterExternalAllocation(void* ptr)
+    {
+        if (Allocator.SupportsAllocationTracking && Allocator is IAllocationTracker tracker)
+        {
+            tracker.UnregisterExternalAllocation(ptr);
+            return true;
+        }
+        return false;
+    }
 }
