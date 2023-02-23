@@ -165,7 +165,7 @@ internal unsafe class MProtectedMemory__Internal<T> : IProtectedMemoryFactory<MP
 
             if (_isProtected == (uint)ProtectionState.Protected && !_validator.ValidateNoAccess(handle, context))
             {
-                error = "PAGE_NOACCESS was lifted!";
+                error = "PROT_NONE was lifted!";
                 return false;
             }
         }
