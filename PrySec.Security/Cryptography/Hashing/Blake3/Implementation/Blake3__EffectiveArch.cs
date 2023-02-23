@@ -11,7 +11,7 @@ namespace PrySec.Security.Cryptography.Hashing.Blake3.Implementation;
 
 public unsafe abstract partial class Blake3__EffectiveArch
 {
-    public static string Version => "1.3.1";
+    public static string Version => "1.3.3";
 
     /// <summary>
     /// in bytes
