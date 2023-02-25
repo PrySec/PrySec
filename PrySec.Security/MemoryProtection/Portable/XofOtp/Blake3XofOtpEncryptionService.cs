@@ -48,7 +48,6 @@ internal static unsafe class Blake3XofOtpEncryptionService
 
     private static void ApplyOtp<T>(Blake3XofOtpEncryptedMemory<T> memory) where T : unmanaged
     {
-        // TODO: use actually protected memory
         byte* pBlakeXofKey = stackalloc byte[KEY_SIZE];
         MemoryManager.Memcpy(pBlakeXofKey, memory.NativeHandle.ToPointer(), KEY_SIZE);
         using DeterministicMemory<byte> blakeXofKey = DeterministicMemory.ProtectOnly(pBlakeXofKey, KEY_SIZE);
