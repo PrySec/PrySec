@@ -27,7 +27,10 @@ internal unsafe class Blake3HwIntrinsicsAvx2 : IBlake3Implementation
         {
             Hash8Avx2(inputs, blockCount, key, counter, incrementCounter, flags, flagsStart, flagsEnd, output);
             if (incrementCounter)
+            {
                 counter += SimdDegree;
+            }
+
             inputs += SimdDegree;
             inputCount -= SimdDegree;
             output += SimdDegree * BLAKE3_BLOCK_LEN;
@@ -257,7 +260,7 @@ internal unsafe class Blake3HwIntrinsicsAvx2 : IBlake3Implementation
 
         for (int i = 0; i < 8; i++)
         {
-            // TODO: why prefetch the input into all cache levels when were now working with the output?
+            // TODO: why prefetch the input into all cache levels when we're now working with the output?
             Sse.Prefetch0(inputs[i] + blockOffset + 256);
         }
         TransposeVectors(output);
