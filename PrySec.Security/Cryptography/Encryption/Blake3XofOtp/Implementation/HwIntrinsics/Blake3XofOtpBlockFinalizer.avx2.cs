@@ -15,10 +15,7 @@ internal unsafe class Blake3XofOtpFinalizerHwIntrinsicsAvx2 : IBlake3XofOtpBlock
         byte* src = (byte*)source;
         for (; length >= VECTOR_SIZE; length -= VECTOR_SIZE, src += VECTOR_SIZE, dst += VECTOR_SIZE)
         {
-            Vector256<byte> srcVec = Avx.LoadVector256(src);
-            Vector256<byte> dstVec = Avx.LoadVector256(dst);
-            Vector256<byte> result = Avx2.Xor(srcVec, dstVec);
-            Avx.Store(dst, result);
+            Avx.Store(dst, Avx2.Xor(Avx.LoadVector256(src), Avx.LoadVector256(dst)));
         }
         if (length > 0)
         {

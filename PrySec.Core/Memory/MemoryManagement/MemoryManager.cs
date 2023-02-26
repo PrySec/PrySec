@@ -51,10 +51,6 @@ public static unsafe partial class MemoryManager
         _freeImpl(ptr);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void ZeroMemory<T>(T* ptr, Size_T elementCount) where T : unmanaged =>
-        ZeroMemory((void*)ptr, elementCount * sizeof(T));
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void ZeroMemory(void* ptr, Size_T byteSize) =>
         Unsafe.InitBlockUnaligned(ptr, 0x0, byteSize);
 

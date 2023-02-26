@@ -15,6 +15,12 @@ public unsafe interface IMemoryAccess<T> : IDisposable where T : unmanaged
     /// </summary>
     public int Count { get; }
 
+    public T this[int index]
+    {
+        get => Pointer[index];
+        set => Pointer[index] = value;
+    }
+
     /// <summary>
     /// The size in bytes of the client-usable memory region of this resource.
     /// </summary>

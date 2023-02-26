@@ -6,23 +6,81 @@ using PrySec.Core.Memory.MemoryManagement;
 using PrySec.Core.Memory.MemoryManagement.Implementations;
 using PrySec.Core.Memory.MemoryManagement.Implementations.AllocationTracking;
 using PrySec.Core.Native.UnixLike.Procfs;
+using PrySec.Core.NativeTypes;
 using PrySec.Core.Primitives.Converters;
 using PrySec.Security.Cryptography.Hashing.Blake2;
+using PrySec.Security.MemoryProtection;
 using PrySec.Security.MemoryProtection.Native.Ntos.DPApi;
 using PrySec.Security.MemoryProtection.Native.Ntos.MemoryApi;
 using PrySec.Security.MemoryProtection.Native.Posix.SysMMan;
 using PrySec.Security.MemoryProtection.Portable;
+using PrySec.Security.MemoryProtection.Portable.ProtectedMemory;
 using PrySec.Security.MemoryProtection.Portable.XofOtp;
 using System;
 using System.Buffers.Binary;
 using System.Diagnostics;
 using System.IO;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
+using System.Security;
 using System.Text;
 using System.Threading;
 using Testing;
+
+try
+{
+    unsafe
+    {
+        IProtectedMemory<char> memory = Blake3XofOtpEncryptedMemory<char>.Allocate(20);
+        using (IMemoryAccess<char> access = memory.GetAccess())
+        {
+            access[4] = 'u';
+            access[17] = 'i';
+            access[3] = 'q';
+            access[18] = 'n';
+            access[6] = 't';
+            access[2] = 'i';
+            access[1] = 'b';
+            access[7] = 'o';
+            access[10] = ' ';
+            access[5] = 'i';
+            access[12] = 'o';
+            access[9] = 's';
+            access[14] = 'p';
+            access[13] = 'm';
+            access[0] = 'U';
+            access[19] = 'g';
+            access[11] = 'C';
+            access[16] = 't';
+            access[8] = 'u';
+            access[15] = 'u';
+        }
+        Console.WriteLine($"allocation: 0x{(nint)memory.BasePointer:x16}");
+        FieldInfo? finfo = typeof(Blake3XofOtpEncryptionService).GetField("_principalKeyMemory", BindingFlags.Static | BindingFlags.NonPublic);
+        ProtectedMemory<byte>? masterKey = finfo?.GetValue(null) as ProtectedMemory<byte>;
+        Console.WriteLine($"master key: 0x{(masterKey?.NativeHandle ?? 0):x16}");
+        while (true)
+        {
+            Console.WriteLine("protected!");
+            Console.WriteLine("Press enter to unprotect");
+            Console.ReadLine();
+            using IMemoryAccess<char> _ = memory.GetAccess();
+            Console.WriteLine("unprotected!");
+            Console.WriteLine("Press enter to protect");
+            Console.ReadLine();
+        }
+    }
+}
+catch (SecurityException se)
+{
+    Console.WriteLine(se.Message);
+    Console.WriteLine("Memory wiped!");
+    Console.ReadLine();
+}
+
+return;
 
 unsafe
 {

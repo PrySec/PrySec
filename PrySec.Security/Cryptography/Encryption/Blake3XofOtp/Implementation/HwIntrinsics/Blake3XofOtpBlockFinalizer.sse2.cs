@@ -14,10 +14,7 @@ internal unsafe class Blake3XofOtpFinalizerHwIntrinsicsSse2 : IBlake3XofOtpBlock
         byte* src = (byte*)source;
         for (; length >= VECTOR_SIZE; length -= VECTOR_SIZE, src += VECTOR_SIZE, dst += VECTOR_SIZE)
         {
-            Vector128<byte> srcVec = Sse2.LoadVector128(src);
-            Vector128<byte> dstVec = Sse2.LoadVector128(dst);
-            Vector128<byte> result = Sse2.Xor(srcVec, dstVec);
-            Sse2.Store(dst, result);
+            Sse2.Store(dst, Sse2.Xor(Sse2.LoadVector128(src), Sse2.LoadVector128(dst)));
         }
         if (length > 0)
         {
