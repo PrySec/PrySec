@@ -29,55 +29,46 @@ using System.Text;
 using System.Threading;
 using Testing;
 
-try
+unsafe
 {
-    unsafe
+    IProtectedMemory<char> memory = Blake3XofOtpEncryptedMemory<char>.Allocate(20);
+    using (IMemoryAccess<char> access = memory.GetAccess())
     {
-        IProtectedMemory<char> memory = Blake3XofOtpEncryptedMemory<char>.Allocate(20);
-        using (IMemoryAccess<char> access = memory.GetAccess())
-        {
-            access[4] = 'u';
-            access[17] = 'i';
-            access[3] = 'q';
-            access[18] = 'n';
-            access[6] = 't';
-            access[2] = 'i';
-            access[1] = 'b';
-            access[7] = 'o';
-            access[10] = ' ';
-            access[5] = 'i';
-            access[12] = 'o';
-            access[9] = 's';
-            access[14] = 'p';
-            access[13] = 'm';
-            access[0] = 'U';
-            access[19] = 'g';
-            access[11] = 'C';
-            access[16] = 't';
-            access[8] = 'u';
-            access[15] = 'u';
-        }
-        Console.WriteLine($"allocation: 0x{(nint)memory.BasePointer:x16}");
-        FieldInfo? finfo = typeof(Blake3XofOtpEncryptionService).GetField("_principalKeyMemory", BindingFlags.Static | BindingFlags.NonPublic);
-        ProtectedMemory<byte>? masterKey = finfo?.GetValue(null) as ProtectedMemory<byte>;
-        Console.WriteLine($"master key: 0x{(masterKey?.NativeHandle ?? 0):x16}");
-        while (true)
-        {
-            Console.WriteLine("protected!");
-            Console.WriteLine("Press enter to unprotect");
-            Console.ReadLine();
-            using IMemoryAccess<char> _ = memory.GetAccess();
-            Console.WriteLine("unprotected!");
-            Console.WriteLine("Press enter to protect");
-            Console.ReadLine();
-        }
+        access[4] = 'u';
+        access[17] = 'i';
+        access[3] = 'q';
+        access[18] = 'n';
+        access[6] = 't';
+        access[2] = 'i';
+        access[1] = 'b';
+        access[7] = 'o';
+        access[10] = ' ';
+        access[5] = 'i';
+        access[12] = 'o';
+        access[9] = 's';
+        access[14] = 'p';
+        access[13] = 'm';
+        access[0] = 'U';
+        access[19] = 'g';
+        access[11] = 'C';
+        access[16] = 't';
+        access[8] = 'u';
+        access[15] = 'u';
     }
-}
-catch (SecurityException se)
-{
-    Console.WriteLine(se.Message);
-    Console.WriteLine("Memory wiped!");
-    Console.ReadLine();
+    Console.WriteLine($"allocation: 0x{(nint)memory.BasePointer:x16}");
+    FieldInfo? finfo = typeof(Blake3XofOtpEncryptionService).GetField("_principalKeyMemory", BindingFlags.Static | BindingFlags.NonPublic);
+    ProtectedMemory<byte>? masterKey = finfo?.GetValue(null) as ProtectedMemory<byte>;
+    Console.WriteLine($"master key: 0x{(masterKey?.NativeHandle ?? 0):x16}");
+    while (true)
+    {
+        Console.WriteLine("protected!");
+        Console.WriteLine("Press enter to unprotect");
+        Console.ReadLine();
+        using IMemoryAccess<char> _ = memory.GetAccess();
+        Console.WriteLine("unprotected!");
+        Console.WriteLine("Press enter to protect");
+        Console.ReadLine();
+    }
 }
 
 return;
