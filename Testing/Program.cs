@@ -31,29 +31,29 @@ using Testing;
 
 unsafe
 {
-    IProtectedMemory<char> memory = Blake3XofOtpEncryptedMemory<char>.Allocate(20);
+    using IProtectedMemory<char> memory = Blake3XofOtpEncryptedMemory<char>.Allocate(20);
     using (IMemoryAccess<char> access = memory.GetAccess())
     {
-        access[4] = 'u';
-        access[17] = 'i';
-        access[3] = 'q';
-        access[18] = 'n';
-        access[6] = 't';
-        access[2] = 'i';
-        access[1] = 'b';
-        access[7] = 'o';
-        access[10] = ' ';
-        access[5] = 'i';
-        access[12] = 'o';
-        access[9] = 's';
-        access[14] = 'p';
-        access[13] = 'm';
         access[0] = 'U';
-        access[19] = 'g';
-        access[11] = 'C';
-        access[16] = 't';
+        access[1] = 'b';
+        access[2] = 'i';
+        access[3] = 'q';
+        access[4] = 'u';
+        access[5] = 'i';
+        access[6] = 't';
+        access[7] = 'o';
         access[8] = 'u';
+        access[9] = 's';
+        access[10] = ' ';
+        access[11] = 'C';
+        access[12] = 'o';
+        access[13] = 'm';
+        access[14] = 'p';
         access[15] = 'u';
+        access[16] = 't';
+        access[17] = 'i';
+        access[18] = 'n';
+        access[19] = 'g';
     }
     Console.WriteLine($"allocation: 0x{(nint)memory.BasePointer:x16}");
     FieldInfo? finfo = typeof(Blake3XofOtpEncryptionService).GetField("_principalKeyMemory", BindingFlags.Static | BindingFlags.NonPublic);

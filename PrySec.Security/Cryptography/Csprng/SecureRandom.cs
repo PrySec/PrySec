@@ -3,7 +3,7 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 
-namespace PrySec.Security.Cryptography.Crng;
+namespace PrySec.Security.Cryptography.Csprng;
 
 public static unsafe class SecureRandom
 {

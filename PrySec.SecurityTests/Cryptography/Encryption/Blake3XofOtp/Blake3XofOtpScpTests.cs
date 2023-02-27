@@ -1,7 +1,7 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PrySec.Core.Memory.MemoryManagement;
 using PrySec.Core.Memory.MemoryManagement.Implementations.AllocationTracking;
-using PrySec.Security.Cryptography.Crng;
+using PrySec.Security.Cryptography.Csprng;
 using PrySec.Security.Cryptography.Encryption.Blake3XofOtp;
 using PrySec.Security.MemoryProtection.Portable;
 using PrySec.SecurityTests;

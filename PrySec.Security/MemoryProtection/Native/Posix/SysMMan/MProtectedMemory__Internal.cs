@@ -16,8 +16,6 @@ internal unsafe class MProtectedMemory__Internal<T> : IProtectedMemoryFactory<MP
 {
     private bool disposedValue = false;
 
-    private static readonly ThreadLocal<ProcfsMapsParser> _procfs = new(() => new ProcfsMapsParser(256));
-
     private readonly ISysMManAccessValidator _validator;
 
     private protected MProtectedMemory__Internal(Size_T count)
