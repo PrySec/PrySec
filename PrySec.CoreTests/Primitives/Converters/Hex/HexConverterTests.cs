@@ -1,4 +1,5 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using PrySec.Core.NativeTypes;
 using PrySec.Core.Primitives.Converters;
 using PrySec.CoreTests;
 using System;
@@ -14,12 +15,25 @@ namespace PrySec.Core.Primitives.Converters.Tests;
 public class HexConverterTests : BaseTest
 {
     [TestMethod]
-    public void UnhexlifyTest32()
+    public void UnhexlifyTest32_0()
     {
         const string expected = "000102030405060708090A0B0C0D0E0F";
         byte[] actualBytes = HexConverter.Unhexlify(expected);
         string actual = Convert.ToHexString(actualBytes);
         Assert.AreEqual(expected, actual);
+        string actualString = HexConverter.Hexlify(actualBytes);
+        Assert.AreEqual(expected, actualString);
+    }
+
+    [TestMethod]
+    public void UnhexlifyTest32_1()
+    {
+        const string expected = "0123456789ABCDEF";
+        byte[] actualBytes = HexConverter.Unhexlify(expected);
+        string actual = Convert.ToHexString(actualBytes);
+        Assert.AreEqual(expected, actual);
+        string actualString = HexConverter.Hexlify(actualBytes);
+        Assert.AreEqual(expected, actualString);
     }
 
     [TestMethod]
@@ -28,6 +42,22 @@ public class HexConverterTests : BaseTest
         const string expected = "0112233445566778899AABBCCDDEEFF0";
         byte[] actualBytes = HexConverter.Unhexlify(expected);
         string actual = Convert.ToHexString(actualBytes);
+        Assert.AreEqual(expected, actual);
+        string actualString = HexConverter.Hexlify(actualBytes);
+        Assert.AreEqual(expected, actualString);
+    }
+    
+    [TestMethod]
+    public void HexlifyTest()
+    {
+        Size_T outputSize = 8192;
+        Random random = new(42);
+        byte[] bytes = new byte[outputSize];
+        random.NextBytes(bytes);
+
+        string expected = Convert.ToHexString(bytes);
+        string actual = HexConverter.Hexlify(bytes);
+
         Assert.AreEqual(expected, actual);
     }
 
@@ -38,6 +68,8 @@ public class HexConverterTests : BaseTest
         byte[] actualBytes = HexConverter.Unhexlify(expected);
         string actual = Convert.ToHexString(actualBytes);
         Assert.AreEqual(expected, actual);
+        string actualString = HexConverter.Hexlify(actualBytes);
+        Assert.AreEqual(expected, actualString);
     }
 
     [TestMethod]
@@ -47,6 +79,8 @@ public class HexConverterTests : BaseTest
         byte[] actualBytes = HexConverter.Unhexlify(expected);
         string actual = Convert.ToHexString(actualBytes);
         Assert.AreEqual(expected, actual);
+        string actualString = HexConverter.Hexlify(actualBytes);
+        Assert.AreEqual(expected, actualString);
     }
 
     [TestMethod]
@@ -56,6 +90,8 @@ public class HexConverterTests : BaseTest
         byte[] actualBytes = HexConverter.Unhexlify(expected);
         string actual = Convert.ToHexString(actualBytes);
         Assert.AreEqual(expected, actual);
+        string actualString = HexConverter.Hexlify(actualBytes);
+        Assert.AreEqual(expected, actualString);
     }
 
     [TestMethod]
@@ -65,6 +101,8 @@ public class HexConverterTests : BaseTest
         byte[] actualBytes = HexConverter.Unhexlify(expected);
         string actual = Convert.ToHexString(actualBytes);
         Assert.AreEqual(expected, actual);
+        string actualString = HexConverter.Hexlify(actualBytes);
+        Assert.AreEqual(expected, actualString);
     }
 
     [TestMethod]

@@ -19,10 +19,12 @@ public unsafe class Test
 
     private static readonly Size_T outputSize = 8192;
 
+    private readonly byte[] bytes;
+
     public Test()
     {
         Random random = new(42);
-        byte[] bytes = new byte[outputSize];
+        bytes = new byte[outputSize];
         random.NextBytes(bytes);
         input = Convert.ToHexString(bytes);
         inputSize = Encoding.ASCII.GetByteCount(input);
@@ -30,9 +32,15 @@ public unsafe class Test
         pOutput = (byte*)MemoryManager.Malloc(outputSize);
     }
 
+    //[Benchmark(Baseline = true)]
+    //public byte[] ConvertFromHex() => Convert.FromHexString(input);
+
+    //[Benchmark]
+    //public void HwAccelerated() => HexConverter.Unhexlify(pInput, inputSize, pOutput, outputSize);
+
     [Benchmark(Baseline = true)]
-    public byte[] ConvertFromHex() => Convert.FromHexString(input);
+    public string ConvertToHex() => Convert.ToHexString(bytes);
 
     [Benchmark]
-    public void HwAccelerated() => HexConverter.Unhexlify(pInput, inputSize, pOutput, outputSize);
+    public string HwAcceleratedToHex() => HexConverter.Hexlify(bytes);
 }

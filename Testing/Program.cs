@@ -29,6 +29,9 @@ using System.Text;
 using System.Threading;
 using Testing;
 
+BenchmarkRunner.Run<Test>();
+return;
+
 unsafe
 {
     using IProtectedMemory<char> memory = Blake3XofOtpEncryptedMemory<char>.Allocate(20);
