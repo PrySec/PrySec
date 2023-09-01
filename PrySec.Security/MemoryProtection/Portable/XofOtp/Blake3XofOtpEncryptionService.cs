@@ -1,6 +1,6 @@
 ﻿using PrySec.Core.Memory;
 using PrySec.Core.Memory.MemoryManagement;
-using PrySec.Security.Cryptography.Crng;
+using PrySec.Security.Cryptography.Csprng;
 using PrySec.Security.Cryptography.Encryption.Blake3XofOtp;
 using PrySec.Security.MemoryProtection.Native.Ntos.MemoryApi;
 using PrySec.Security.MemoryProtection.Portable.ProtectedMemory;

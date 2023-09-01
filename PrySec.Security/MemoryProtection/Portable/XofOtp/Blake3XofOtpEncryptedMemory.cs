@@ -2,7 +2,7 @@
 using PrySec.Core.Memory;
 using PrySec.Core.Memory.MemoryManagement;
 using PrySec.Core.NativeTypes;
-using PrySec.Security.Cryptography.Crng;
+using PrySec.Security.Cryptography.Csprng;
 using System;
 
 namespace PrySec.Security.MemoryProtection.Portable.XofOtp;

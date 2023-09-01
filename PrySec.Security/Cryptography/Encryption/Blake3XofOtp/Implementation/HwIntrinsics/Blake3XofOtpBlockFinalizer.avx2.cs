@@ -1,5 +1,6 @@
 ﻿using PrySec.Core;
 using PrySec.Core.NativeTypes;
+using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 
@@ -9,6 +10,7 @@ internal unsafe class Blake3XofOtpFinalizerHwIntrinsicsAvx2 : IBlake3XofOtpBlock
 {
     private const int VECTOR_SIZE = 32;
 
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public static void FinalizeBlock(void* destination, void* source, Size_T length)
     {
         byte* dst = (byte*)destination;
